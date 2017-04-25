@@ -20,6 +20,18 @@ def processClientRequest(clientMessage, blockDuration, timeout):
         username = getRequestUsername(clientMessage)
         replyMessage = processLogout(username)
         return replyMessage
+    if clientAction == WHOELSE:
+        username = getRequestUsername(clientMessage)
+        onlineUserNames = processWhoelse(username)
+        WHOELSE_REPLY_MESSAGE["DisplayMessage"] = onlineUserNames
+        return WHOELSE_REPLY_MESSAGE
+    if clientAction == WHOELSESINCE:
+        username = getRequestUsername(clientMessage)
+        timeSince = clientMessage["WhoelseSinceTime"]
+        onlineUserNamesSinceTime = processWhoelseSince(username, timeSince)
+        WHOELSE_REPLY_MESSAGE["DisplayMessage"] = onlineUserNamesSinceTime
+        return WHOELSE_REPLY_MESSAGE
+
 
 def createUserObject(clientInputUsername):
     User(clientInputUsername)
@@ -97,17 +109,16 @@ def login(clientInputUsername, clientInputPassword):
         currentPassword = user.getPassword()
         if currentUsername == clientInputUsername and currentPassword == clientInputPassword:
             # if user has already logged in
-            if user.getUserStatus() == True:
+            if user.isUserOnline() == True:
                 loginStatus = LOGIN_USER_ALREADY_LOGGEDIN
             else:
                 loginStatus = LOGIN_SUCCESS
-                user.setLogInTime()
                 user.resetAttemptTime()
                 user.online = True
             isUserFind = True
             break
         if currentUsername == clientInputUsername and currentPassword != clientInputPassword:
-            if user.getUserStatus() == True:
+            if user.isUserOnline() == True:
                 loginStatus = LOGIN_USER_ALREADY_LOGGEDIN
             else:
                 loginStatus = LOGIN_INVALID_PASSWORD
@@ -123,9 +134,58 @@ def login(clientInputUsername, clientInputPassword):
 def processLogout(username):
     user = getUserFromUsername(username)
     user.setUserStatue(False)
+    user.setLastOnlineTime()
     LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
     LOGIN_REPLY_MESSAGE["KeepConnect"] = False
+    LOGIN_REPLY_MESSAGE["DisplayMessage"] = "SEE YOU. BYE!!"
     return LOGIN_REPLY_MESSAGE
+
+def processWhoelse(username):
+    onlineUserNames = getOnlineUsername()
+    onlineUserNames.remove(username)
+    onlineUserNamesString = convertListToString(onlineUserNames)
+    return onlineUserNamesString
+
+def processWhoelseSince(username, timeSince):
+    onlineUserNames = getOnlineUsername()
+    onlineUserNames.remove(username)
+
+    whoelseSince = onlineUserNames
+
+    offlineUsers = getOfflineUser()
+    for offlineUser in offlineUsers:
+        lastOnlineTime = offlineUser.getLastOnlineTime()
+        currentTime = time.time()
+        timeInterval = int(currentTime - lastOnlineTime)
+
+        if timeInterval < int(timeSince):
+            whoelseSince.append(offlineUser.getUsername())
+
+    whoelseSinceString = convertListToString(whoelseSince)
+    return whoelseSinceString
+
+def getOnlineUsername():
+    onlineUsernameList = []
+    for user in userList:
+        if user.isUserOnline():
+            onlineUsernameList.append(user.getUsername())
+    return onlineUsernameList
+
+def getOfflineUser():
+    onlineUserList = []
+    for user in userList:
+        if not user.isUserOnline():
+            onlineUserList.append(user)
+    return onlineUserList
+
+
+def convertListToString(userNamelist):
+    if len(userNamelist) == 0:
+        return ""
+    userNamelistString = userNamelist[0]
+    for username in userNamelist[1:]:
+        userNamelistString = userNamelistString + "\n" + username
+    return userNamelistString
 
 def resetUserAttemptTime(user):
     user.resetAttemptTime()

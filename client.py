@@ -38,7 +38,6 @@ while keepConnect and isContinueLoggingIn:
     CLIENT_MESSAGE["Password"] = password
 
     clientRequest = json.dumps(CLIENT_MESSAGE)
-    print clientRequest
     clientSocket.send(clientRequest)
 
     receivedMessage = clientSocket.recv(1024)
@@ -52,17 +51,20 @@ while keepConnect and isContinueLoggingIn:
     #     sys.exit()
 
 while keepConnect:
-    clientRequest = raw_input()
+    clientRequest = raw_input('> ')
     clientRequestJson = parseClientRequest(clientRequest)
-    print clientRequestJson
     if clientRequestJson["Action"] == ACTION_UNKOWN:
         print INVALID_COMMAND
         continue
+
     clientRequestString = json.dumps(CLIENT_MESSAGE)
 
     clientSocket.send(clientRequestString)
+
     receivedMessage = clientSocket.recv(1024)
     receivedMessageJson = json.loads(receivedMessage)
+    desplayMessage = receivedMessageJson["DisplayMessage"]
     keepConnect = receivedMessageJson["KeepConnect"]
 
+    print desplayMessage
 sys.exit()

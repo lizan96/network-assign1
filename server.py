@@ -102,7 +102,7 @@ try:
                 except KeyError:
                     pass
                 wlistList.remove(sock)
-                print "No data currently remain for", addresses[sock]
+                # print "No data currently remain for", addresses[sock]
 
 finally:
     serverSocket.close()

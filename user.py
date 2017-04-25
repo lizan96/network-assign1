@@ -7,7 +7,7 @@ class User:
         self.blockTime = 0
         self.attemptTime = 0
         self.online = False
-        self.loginTime = 0
+        self.lastOnlineTime = 0
 
     ##################################################################################
     def getUsername(self):
@@ -48,8 +48,11 @@ class User:
     def setUserStatue(self, status):
         self.online = status
 
-    def setLogInTime(self):
-        self.loginTime = time.time()
+    def setLastOnlineTime(self):
+        self.lastOnlineTime = time.time()
 
-    def getUserStatus(self):
+    def getLastOnlineTime(self):
+        return self.lastOnlineTime
+
+    def isUserOnline(self):
         return self.online

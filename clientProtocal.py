@@ -5,7 +5,8 @@ INVALID_COMMAND = "Error. Invalid Command."
 CLIENT_MESSAGE = {
     "Action": 0,
     "Username": "",
-    "Password": ""
+    "Password": "",
+    "WhoelseSinceTime": 0
 }
 
 # LOG_IN = {

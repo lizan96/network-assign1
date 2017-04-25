@@ -10,3 +10,8 @@ LOGIN_REPLY_MESSAGE = {
     "BlockDuration": 0,
     "LoginStatus": LOGIN_NO_SUCH_USER
 }
+
+WHOELSE_REPLY_MESSAGE = {
+    "KeepConnect": True,
+    "DisplayMessage": ""
+}

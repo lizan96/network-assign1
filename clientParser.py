@@ -3,8 +3,17 @@ from clientProtocal import *
 from globalVariable import *
 
 def parseClientRequest(clientRequest):
-    if clientRequest == "logout":
+    request = clientRequest.split()
+
+    actionRequested = request[0]
+    if actionRequested == "logout":
         CLIENT_MESSAGE["Action"] = LOGOUT
+    elif actionRequested == "whoelse":
+        CLIENT_MESSAGE["Action"] = WHOELSE
+    elif actionRequested == "whoelsesince":
+        whoelseSinceTime = request[1]
+        CLIENT_MESSAGE["Action"] = WHOELSESINCE
+        CLIENT_MESSAGE["WhoelseSinceTime"] = whoelseSinceTime
     else:
         CLIENT_MESSAGE["Action"] = ACTION_UNKOWN
     return CLIENT_MESSAGE
