@@ -11,7 +11,7 @@ serverPort = int(sys.argv[2])
 clientSocket.connect((serverIP, serverPort))
 
 keepConnect = 1
-isLoginSuccess = True
+isContinueLoggingIn = True
 
 username = raw_input('Username: ')
 password = raw_input('Password: ')
@@ -20,17 +20,20 @@ CLIENT_MESSAGE["Username"] = username
 CLIENT_MESSAGE["Password"] = password
 
 clientRequest = json.dumps(CLIENT_MESSAGE)
-print clientRequest
 clientSocket.send(clientRequest)
 
 receivedMessage = clientSocket.recv(1024)
 receivedMessageJson = json.loads(receivedMessage)
 desplayMessage = receivedMessageJson["DisplayMessage"]
-isLoginSuccess = receivedMessageJson["LoginSuccess"]
+if receivedMessageJson["LoginSuccess"]:
+    isContinueLoggingIn = False
 keepConnect = receivedMessageJson["KeepConnect"]
 print desplayMessage
 
-while keepConnect and not isLoginSuccess:
+while keepConnect and isContinueLoggingIn:
+    if receivedMessageJson["LoginStatus"] == LOGIN_NO_SUCH_USER:
+        username = raw_input('Username: ')
+        CLIENT_MESSAGE["Username"] = username
     password = raw_input('Password: ')
     CLIENT_MESSAGE["Password"] = password
 
@@ -41,16 +44,25 @@ while keepConnect and not isLoginSuccess:
     receivedMessage = clientSocket.recv(1024)
     receivedMessageJson = json.loads(receivedMessage)
     desplayMessage = receivedMessageJson["DisplayMessage"]
-    isLoginSuccess = receivedMessageJson["LoginSuccess"]
+    if receivedMessageJson["LoginSuccess"]:
+        isContinueLoggingIn = False
     keepConnect = receivedMessageJson["KeepConnect"]
     print desplayMessage
+    # if not keepConnect:
+    #     sys.exit()
 
-while isLoginSuccess:
+while keepConnect:
     clientRequest = raw_input()
     clientRequestJson = parseClientRequest(clientRequest)
+    print clientRequestJson
+    if clientRequestJson["Action"] == ACTION_UNKOWN:
+        print INVALID_COMMAND
+        continue
     clientRequestString = json.dumps(CLIENT_MESSAGE)
-    logging.debug(clientRequestString)
+
     clientSocket.send(clientRequestString)
-    if clientRequest == "logout":
-        sys.exit()
     receivedMessage = clientSocket.recv(1024)
+    receivedMessageJson = json.loads(receivedMessage)
+    keepConnect = receivedMessageJson["KeepConnect"]
+
+sys.exit()

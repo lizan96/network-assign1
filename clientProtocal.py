@@ -1,5 +1,6 @@
 import json
 
+INVALID_COMMAND = "Error. Invalid Command."
 
 CLIENT_MESSAGE = {
     "Action": 0,

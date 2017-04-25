@@ -6,8 +6,6 @@ from serverProtocal import *
 import serverHandler
 from globalVariable import *
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
 serverPort = int(sys.argv[1])
 blockDuration = int(sys.argv[2])
 timeout = int(sys.argv[3])
@@ -18,35 +16,7 @@ serverSocket.listen(10)
 
 print "The server is ready to receive"
 serverHandler.createUserList()
-#
-# # log in first --> establish connection
-# # keep connecting
-# # so while loop -> no use
-#
-# def clientThread(conn):
-#     # infinite loop so that function do not terminate and thread do not end.
-#     # while 1:
-#     # receive request from client
-#     clientMessage = conn.recv(1024).decode('utf-8')
-#     try:
-#         logging.debug(json.loads(clientMessage))
-#         clientMessageJson = json.loads(clientMessage)
-#
-#         # process request
-#         replyMessage = serverHandler.processClientRequest(clientMessageJson, blockDuration, timeout)
-#
-#         # send reply message
-#         replyMessageString = json.dumps(replyMessage)
-#         logging.debug(replyMessage)
-#         conn.send(replyMessageString)
-#     except:
-#         pass
-#
 
-# while 1:
-#     connectionSocket, addr = serverSocket.accept()
-#     logging.debug('Connected with ' + addr[0] + ':' + str(addr[1]))
-#     start_new_thread(clientThread, (connectionSocket,))
 def closeSocket(sock, rlistList, wlistList, addr):
     del addr[sock]
     try:
@@ -65,6 +35,16 @@ data = {}
 # mapping socket -> (host, port) on which the client is running
 addresses = {}
 
+def disconnectSocket(rlistList, wlistList, addresses, sock):
+    del addresses[sock]
+    try:
+        rlistList.remove(sock)
+        wlistList.remove(sock)
+    except:
+        pass
+    sock.close()
+
+    return (rlistList, wlistList, addresses)
 try:
     while True:
         rlist, wlist, xlist = select(rlistList, wlistList, [])
@@ -72,7 +52,7 @@ try:
             if sock is serverSocket:
                 # input event on sock means client trying to connect
                 newSocket, address = serverSocket.accept()
-                # logging.debug("Connected from", address[0], ":", address[1])
+                print "Connected from", address[0], ":", address[1]
                 rlistList.append(newSocket)
                 addresses[newSocket] = address
             else:
@@ -82,28 +62,27 @@ try:
                     clientMessageJson = json.loads(clientMessage)
                     replyMessageJson = serverHandler.processClientRequest(clientMessageJson, blockDuration, timeout)
                     if clientMessageJson["Action"] == LOGOUT:
-                        # logging.debug("logout disconnected", addresses[sock])
-                        del addresses[sock]
-                        try:
-                            rlistList.remove(sock)
-                            wlistList.remove(sock)
-                        except:
-                            pass
-                        sock.close()
-                    elif clientMessageJson["Action"] == LOGIN and replyMessageJson["KeepConnect"] == False:
-                        receivedMessageString = json.dumps(replyMessageJson)
-                        insent = sock.send(receivedMessageString)
-                        # logging.debug("logout disconnected", addresses[sock])
-                        del addresses[sock]
-                        try:
-                            rlistList.remove(sock)
-                            wlistList.remove(sock)
-                        except:
-                            pass
-                        sock.close()
+                        replyMessageString = json.dumps(replyMessageJson)
+                        print replyMessageString
+                        insent = sock.send(replyMessageString)
+                        print "logout: disconnected", addresses[sock][1]
+                        rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
+                    elif (clientMessageJson["Action"] == LOGIN and replyMessageJson["KeepConnect"] == False) or replyMessageJson["DisplayMessage"] == LOGIN_USER_ALREADY_LOGGEDIN:
+                        replyMessageString = json.dumps(replyMessageJson)
+                        insent = sock.send(replyMessageString)
+                        print "logout: disconnected", addresses[sock]
+                        # del addresses[sock]
+                        # try:
+                        #     rlistList.remove(sock)
+                        #     wlistList.remove(sock)
+                        # except:
+                        #     pass
+                        # sock.close()
+                        rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
                     else:
-                        receivedMessageString = json.dumps(replyMessageJson)
-                        data[sock] = data.get(sock, '') + receivedMessageString
+                        replyMessageString = json.dumps(replyMessageJson)
+                        print replyMessageString
+                        data[sock] = data.get(sock, '') + replyMessageString
                         if sock not in wlistList:
                             wlistList.append(sock)
 
@@ -116,7 +95,6 @@ try:
                 tosend = tosend[nsent:]
 
             if tosend:
-                # logging.debug("%d bytes remain for %s" % (len(tosend), addresses[sock]))
                 data[sock] = tosend
             else:
                 try:
@@ -124,7 +102,7 @@ try:
                 except KeyError:
                     pass
                 wlistList.remove(sock)
-                # logging.debug("No data currently remain for", addresses[sock])
+                print "No data currently remain for", addresses[sock]
 
 finally:
     serverSocket.close()

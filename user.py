@@ -1,4 +1,4 @@
-import logging, sys, json, random
+import logging, sys, json, random, time
 
 
 class User:
@@ -7,6 +7,7 @@ class User:
         self.blockTime = 0
         self.attemptTime = 0
         self.online = False
+        self.loginTime = 0
 
     ##################################################################################
     def getUsername(self):
@@ -46,6 +47,9 @@ class User:
     ##################################################################################
     def setUserStatue(self, status):
         self.online = status
+
+    def setLogInTime(self):
+        self.loginTime = time.time()
 
     def getUserStatus(self):
         return self.online
