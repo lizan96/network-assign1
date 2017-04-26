@@ -60,28 +60,57 @@ try:
                 clientMessage = sock.recv(1024).decode('utf-8')
                 if clientMessage:
                     clientMessageJson = json.loads(clientMessage)
-                    replyMessageJson = serverHandler.processClientRequest(clientMessageJson, blockDuration, timeout)
+                    replyMessageJson = serverHandler.processClientRequest(clientMessageJson, sock, blockDuration, timeout)
+
                     if clientMessageJson["Action"] == LOGOUT:
+                        print 66
+                        logoutUsername = replyMessageJson["Username"]
+                        LOGOUT_TO_OTHER_USER["DisplayMessage"] = logoutUsername + "logged out"
+                        messageToOtheruserJson = LOGOUT_TO_OTHER_USER
+                        messageToOtheruserString = json.dumps(messageToOtheruserJson)
+
                         replyMessageString = json.dumps(replyMessageJson)
-                        print replyMessageString
-                        insent = sock.send(replyMessageString)
-                        print "logout: disconnected", addresses[sock][1]
+
+                        sock.send(replyMessageString)
                         rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
+
+                        onlineUserSockets = serverHandler.getOnlineUserSocket()
+                        print onlineUserSockets
+
+                        for onlineUserSocket in onlineUserSockets:
+                            data[onlineUserSocket] = data.get(onlineUserSocket, '') + messageToOtheruserString
+                            if onlineUserSocket not in wlistList:
+                                wlistList.append(onlineUserSocket)
+
+                    elif (clientMessageJson["Action"] == LOGIN and replyMessageJson["LoginStatus"] == LOGIN_SUCCESS):
+                        loginUsername = replyMessageJson["Username"]
+                        LOGIN_TO_OTHER_USER["DisplayMessage"] = loginUsername + " logged in"
+
+                        messageToOtheruserJson = LOGIN_TO_OTHER_USER
+                        messageToOtheruserString = json.dumps(messageToOtheruserJson)
+
+                        replyMessageString = json.dumps(replyMessageJson)
+                        data[sock] = data.get(sock, '') + replyMessageString
+                        if sock not in wlistList:
+                            wlistList.append(sock)
+
+                        onlineUserSockets = serverHandler.getOnlineUserSocket()
+                        onlineUserSockets.remove(sock)
+
+                        for onlineUserSocket in onlineUserSockets:
+                            data[onlineUserSocket] = data.get(onlineUserSocket, '') + messageToOtheruserString
+                            if onlineUserSocket not in wlistList:
+                                wlistList.append(onlineUserSocket)
+
                     elif (clientMessageJson["Action"] == LOGIN and replyMessageJson["KeepConnect"] == False) or replyMessageJson["DisplayMessage"] == LOGIN_USER_ALREADY_LOGGEDIN:
                         replyMessageString = json.dumps(replyMessageJson)
                         insent = sock.send(replyMessageString)
                         print "logout: disconnected", addresses[sock]
-                        # del addresses[sock]
-                        # try:
-                        #     rlistList.remove(sock)
-                        #     wlistList.remove(sock)
-                        # except:
-                        #     pass
-                        # sock.close()
                         rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
+
                     else:
                         replyMessageString = json.dumps(replyMessageJson)
-                        print replyMessageString
+                        # print replyMessageString
                         data[sock] = data.get(sock, '') + replyMessageString
                         if sock not in wlistList:
                             wlistList.append(sock)

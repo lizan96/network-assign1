@@ -8,6 +8,7 @@ class User:
         self.attemptTime = 0
         self.online = False
         self.lastOnlineTime = 0
+        self.sock = None
 
     ##################################################################################
     def getUsername(self):
@@ -26,6 +27,12 @@ class User:
 
     def getClientPort(self):
         return self.clientPort
+
+    def setClientSocket(self, sock):
+        self.sock = sock
+
+    def getClientSocket(self):
+        return self.sock
     ##################################################################################
     ##################################################################################
     def increaseAttemptTime(self):
@@ -45,7 +52,7 @@ class User:
     #     self.blockTime += 1
     ##################################################################################
     ##################################################################################
-    def setUserStatue(self, status):
+    def setUserStatus(self, status):
         self.online = status
 
     def setLastOnlineTime(self):
@@ -56,3 +63,5 @@ class User:
 
     def isUserOnline(self):
         return self.online
+    ##################################################################################
+    ##################################################################################

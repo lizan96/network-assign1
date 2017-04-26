@@ -9,17 +9,17 @@ userList = []
 
 fakeUser = User("NosuchUser")
 
-def processClientRequest(clientMessage, blockDuration, timeout):
+def processClientRequest(clientMessage, sock, blockDuration, timeout):
     clientAction = clientMessage["Action"]
 
     if clientAction == LOGIN:
         logging.debug("log in process start")
-        replyMessage = processLogin(clientMessage, blockDuration, timeout)
-        return replyMessage
+        processLogin(clientMessage, sock, blockDuration, timeout)
+        return LOGIN_REPLY_MESSAGE
     if clientAction == LOGOUT:
         username = getRequestUsername(clientMessage)
-        replyMessage = processLogout(username)
-        return replyMessage
+        processLogout(username)
+        return LOGOUT_REPLY_MESSAGE
     if clientAction == WHOELSE:
         username = getRequestUsername(clientMessage)
         onlineUserNames = processWhoelse(username)
@@ -57,20 +57,15 @@ def getRequestUsername(clientMessage):
     username = clientMessage["Username"]
     return username
 
-def processLogin(clientMessage, blockDuration, timeout):
+def processLogin(clientMessage, sock, blockDuration, timeout):
     requestUsername = getRequestUsername(clientMessage)
     requestUser = getUserFromUsername(requestUsername)
+    LOGIN_REPLY_MESSAGE["Username"] = requestUsername
 
     requestUserAttemptTime = requestUser.getAttemptTime()
     # block account username
-    if requestUserAttemptTime == 2:
-        LOGIN_REPLY_MESSAGE["DisplayMessage"] = "Invalid Password. Your account has been blocked. Please try again later"
-        LOGIN_REPLY_MESSAGE["KeepConnect"] = False
-        requestUser.increaseAttemptTime()
-        blockUser(requestUser, blockDuration)
-        return LOGIN_REPLY_MESSAGE
 
-    elif requestUserAttemptTime > 2:
+    if requestUserAttemptTime > 2:
         LOGIN_REPLY_MESSAGE["DisplayMessage"] = "Your account is blocked due to multiple login failures. Please try again later"
         LOGIN_REPLY_MESSAGE["KeepConnect"] = False
         return LOGIN_REPLY_MESSAGE
@@ -78,7 +73,7 @@ def processLogin(clientMessage, blockDuration, timeout):
     else:
         LOGIN_REPLY_MESSAGE["KeepConnect"] = True
 
-        loginStatus = login(requestUsername, clientMessage["Password"])
+        loginStatus = login(requestUsername, clientMessage["Password"], sock)
 
         if loginStatus == LOGIN_NO_SUCH_USER:
             LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
@@ -90,8 +85,14 @@ def processLogin(clientMessage, blockDuration, timeout):
             replyMessage = "Welcome to the greatest messaging application ever"
 
         elif loginStatus == LOGIN_INVALID_PASSWORD:
-            LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
-            replyMessage = "Invalid Password. Please try again"
+            if requestUserAttemptTime == 2:
+                LOGIN_REPLY_MESSAGE["DisplayMessage"] = "Invalid Password. Your account has been blocked. Please try again later"
+                LOGIN_REPLY_MESSAGE["KeepConnect"] = False
+                requestUser.increaseAttemptTime()
+                blockUser(requestUser, blockDuration)
+            else:
+                LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
+                replyMessage = "Invalid Password. Please try again"
 
         elif loginStatus == LOGIN_USER_ALREADY_LOGGEDIN:
             LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
@@ -100,9 +101,8 @@ def processLogin(clientMessage, blockDuration, timeout):
 
     LOGIN_REPLY_MESSAGE["LoginStatus"] = loginStatus
     LOGIN_REPLY_MESSAGE["DisplayMessage"] = replyMessage
-    return LOGIN_REPLY_MESSAGE
 
-def login(clientInputUsername, clientInputPassword):
+def login(clientInputUsername, clientInputPassword, sock):
     isUserFind = False
     for user in userList:
         currentUsername = user.getUsername()
@@ -115,6 +115,7 @@ def login(clientInputUsername, clientInputPassword):
                 loginStatus = LOGIN_SUCCESS
                 user.resetAttemptTime()
                 user.online = True
+                user.setClientSocket(sock)
             isUserFind = True
             break
         if currentUsername == clientInputUsername and currentPassword != clientInputPassword:
@@ -133,12 +134,14 @@ def login(clientInputUsername, clientInputPassword):
 
 def processLogout(username):
     user = getUserFromUsername(username)
-    user.setUserStatue(False)
+    user.setUserStatus(False)
     user.setLastOnlineTime()
+    user.setClientSocket(None)
+    LOGOUT_REPLY_MESSAGE["Username"] = username
     LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
-    LOGIN_REPLY_MESSAGE["KeepConnect"] = False
-    LOGIN_REPLY_MESSAGE["DisplayMessage"] = "SEE YOU. BYE!!"
-    return LOGIN_REPLY_MESSAGE
+    LOGOUT_REPLY_MESSAGE["KeepConnect"] = False
+    LOGOUT_REPLY_MESSAGE["DisplayMessage"] = "SEE YOU. BYE!!"
+    print username, "logged out"
 
 def processWhoelse(username):
     onlineUserNames = getOnlineUsername()
@@ -164,6 +167,20 @@ def processWhoelseSince(username, timeSince):
     whoelseSinceString = convertListToString(whoelseSince)
     return whoelseSinceString
 
+def getOnlineUser():
+    onlineUserList = []
+    for user in userList:
+        if user.isUserOnline():
+            onlineUserList.append(user)
+    return onlineUserList
+
+def getOnlineUserSocket():
+    onlineUserSocketList = []
+    for user in userList:
+        if user.isUserOnline():
+            onlineUserSocketList.append(user.getClientSocket())
+    return onlineUserSocketList
+
 def getOnlineUsername():
     onlineUsernameList = []
     for user in userList:
@@ -177,7 +194,6 @@ def getOfflineUser():
         if not user.isUserOnline():
             onlineUserList.append(user)
     return onlineUserList
-
 
 def convertListToString(userNamelist):
     if len(userNamelist) == 0:

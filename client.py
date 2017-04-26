@@ -1,4 +1,4 @@
-import logging, sys, json
+import logging, sys, json, threading
 from clientProtocal import *
 from globalVariable import *
 from socket import *
@@ -50,21 +50,34 @@ while keepConnect and isContinueLoggingIn:
     # if not keepConnect:
     #     sys.exit()
 
-while keepConnect:
-    clientRequest = raw_input('> ')
+def receiveMessageFromServer():
+    while True:
+        receivedMessage = clientSocket.recv(1024)
+        receivedMessageJson = json.loads(receivedMessage)
+        desplayMessage = receivedMessageJson["DisplayMessage"]
+
+        print desplayMessage
+
+recv_thread = threading.Thread(target=receiveMessageFromServer)
+recv_thread.setDaemon(True)
+recv_thread.start()
+
+
+while True:
+    clientRequest = raw_input('')
     clientRequestJson = parseClientRequest(clientRequest)
     if clientRequestJson["Action"] == ACTION_UNKOWN:
         print INVALID_COMMAND
         continue
 
     clientRequestString = json.dumps(CLIENT_MESSAGE)
+    print clientRequestString
 
     clientSocket.send(clientRequestString)
 
-    receivedMessage = clientSocket.recv(1024)
-    receivedMessageJson = json.loads(receivedMessage)
-    desplayMessage = receivedMessageJson["DisplayMessage"]
+    if clientRequestJson["Action"] == LOGOUT:
+        sys.exit()
     keepConnect = receivedMessageJson["KeepConnect"]
 
+
     print desplayMessage
-sys.exit()
