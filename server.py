@@ -63,9 +63,8 @@ try:
                     replyMessageJson = serverHandler.processClientRequest(clientMessageJson, sock, blockDuration, timeout)
 
                     if clientMessageJson["Action"] == LOGOUT:
-                        print 66
                         logoutUsername = replyMessageJson["Username"]
-                        LOGOUT_TO_OTHER_USER["DisplayMessage"] = logoutUsername + "logged out"
+                        LOGOUT_TO_OTHER_USER["DisplayMessage"] = logoutUsername + " logged out"
                         messageToOtheruserJson = LOGOUT_TO_OTHER_USER
                         messageToOtheruserString = json.dumps(messageToOtheruserJson)
 
@@ -108,6 +107,20 @@ try:
                         print "logout: disconnected", addresses[sock]
                         rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
 
+                    elif clientMessageJson["Action"] == BROADCAST:
+                        print clientMessageJson["Username"], "broadcasting"
+                        displayMessage = clientMessageJson["Username"] + ": " + clientMessageJson["BroadcastMessage"]
+                        BROADCAST_TO_OTHER_USER["DisplayMessage"] = displayMessage
+                        broadcastToOtherUserString = json.dumps(BROADCAST_TO_OTHER_USER)
+
+                        onlineUserSockets = serverHandler.getOnlineUserSocket()
+                        onlineUserSockets.remove(sock)
+
+                        for onlineUserSocket in onlineUserSockets:
+                            data[onlineUserSocket] = data.get(onlineUserSocket, '') + broadcastToOtherUserString
+                            if onlineUserSocket not in wlistList:
+                                wlistList.append(onlineUserSocket)
+
                     else:
                         replyMessageString = json.dumps(replyMessageJson)
                         # print replyMessageString
@@ -121,6 +134,7 @@ try:
             if tosend:
                 nsent = sock.send(tosend)
                 # remember data still to be sent, if any
+                print nsent, sock
                 tosend = tosend[nsent:]
 
             if tosend:
@@ -131,7 +145,7 @@ try:
                 except KeyError:
                     pass
                 wlistList.remove(sock)
-                # print "No data currently remain for", addresses[sock]
+                print "No data currently remain for", addresses[sock]
 
 finally:
     serverSocket.close()

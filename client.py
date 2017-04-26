@@ -52,11 +52,13 @@ while keepConnect and isContinueLoggingIn:
 
 def receiveMessageFromServer():
     while True:
-        receivedMessage = clientSocket.recv(1024)
-        receivedMessageJson = json.loads(receivedMessage)
-        desplayMessage = receivedMessageJson["DisplayMessage"]
-
-        print desplayMessage
+        try:
+            receivedMessage = clientSocket.recv(1024)
+            receivedMessageJson = json.loads(receivedMessage)
+            desplayMessage = receivedMessageJson["DisplayMessage"]
+            print desplayMessage
+        except:
+            pass
 
 recv_thread = threading.Thread(target=receiveMessageFromServer)
 recv_thread.setDaemon(True)
@@ -71,13 +73,11 @@ while True:
         continue
 
     clientRequestString = json.dumps(CLIENT_MESSAGE)
-    print clientRequestString
 
     clientSocket.send(clientRequestString)
 
     if clientRequestJson["Action"] == LOGOUT:
         sys.exit()
-    keepConnect = receivedMessageJson["KeepConnect"]
+    print "WTF"
 
-
-    print desplayMessage
+sys.exit()

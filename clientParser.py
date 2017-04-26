@@ -14,6 +14,16 @@ def parseClientRequest(clientRequest):
         whoelseSinceTime = request[1]
         CLIENT_MESSAGE["Action"] = WHOELSESINCE
         CLIENT_MESSAGE["WhoelseSinceTime"] = whoelseSinceTime
+    elif actionRequested == "broadcast":
+        CLIENT_MESSAGE["Action"] = BROADCAST
+        broadcastMessage = ""
+        try:
+            broadcastMessage = request[1]
+            for messageString in request[2:]:
+                broadcastMessage = broadcastMessage + " "+ messageString
+        except:
+            pass
+        CLIENT_MESSAGE["BroadcastMessage"] = broadcastMessage
     else:
         CLIENT_MESSAGE["Action"] = ACTION_UNKOWN
     return CLIENT_MESSAGE

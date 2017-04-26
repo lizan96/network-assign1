@@ -31,6 +31,8 @@ def processClientRequest(clientMessage, sock, blockDuration, timeout):
         onlineUserNamesSinceTime = processWhoelseSince(username, timeSince)
         WHOELSE_REPLY_MESSAGE["DisplayMessage"] = onlineUserNamesSinceTime
         return WHOELSE_REPLY_MESSAGE
+    if clientAction == BROADCAST:
+        return GENERAL_REPLY_MESSAGE
 
 
 def createUserObject(clientInputUsername):

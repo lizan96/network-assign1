@@ -6,7 +6,8 @@ CLIENT_MESSAGE = {
     "Action": 0,
     "Username": "",
     "Password": "",
-    "WhoelseSinceTime": 0
+    "WhoelseSinceTime": 0,
+    "BroadcastMessage": ""
 }
 
 # LOG_IN = {

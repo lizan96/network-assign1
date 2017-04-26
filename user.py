@@ -9,6 +9,8 @@ class User:
         self.online = False
         self.lastOnlineTime = 0
         self.sock = None
+        self.blockUserList = []
+        self.beBlockedByUserList = []
 
     ##################################################################################
     def getUsername(self):
@@ -65,3 +67,13 @@ class User:
         return self.online
     ##################################################################################
     ##################################################################################
+    def setBlockUser(self, user):
+        self.blockUserList.append(user)
+    def getBlockUsersList(self):
+        return self.blockUserList
+
+    def setBeBlockedByUser(self, user):
+        self.beBlockedByUserList.append(user)
+
+    def getBeBlockedByUserList(self):
+        return self.beBlockedByUserList

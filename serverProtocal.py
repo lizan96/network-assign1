@@ -32,3 +32,14 @@ WHOELSE_REPLY_MESSAGE = {
     "KeepConnect": True,
     "DisplayMessage": ""
 }
+
+GENERAL_REPLY_MESSAGE = {
+    "KeepConnect": True,
+    "DisplayMessage": ""
+}
+
+BROADCAST_TO_OTHER_USER = {
+    "BroadcastFromUsername": "",
+    "DisplayMessage": "",
+    "KeepConnect": True
+}
