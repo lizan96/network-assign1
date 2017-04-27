@@ -64,6 +64,7 @@ try:
 
                     if clientMessageJson["Action"] == LOGOUT:
                         logoutUsername = replyMessageJson["Username"]
+                        logoutUser = serverHandler.getUserFromUsername(logoutUsername)
                         LOGOUT_TO_OTHER_USER["DisplayMessage"] = logoutUsername + " logged out"
                         messageToOtheruserJson = LOGOUT_TO_OTHER_USER
                         messageToOtheruserString = json.dumps(messageToOtheruserJson)
@@ -75,7 +76,11 @@ try:
 
                         onlineUserSockets = serverHandler.getOnlineUserSocket()
 
+                        blockedUserSockets = logoutUser.getBlockedUserSocket()
+
                         for onlineUserSocket in onlineUserSockets:
+                            if onlineUserSocket in blockedUserSockets:
+                                continue
                             data[onlineUserSocket] = data.get(onlineUserSocket, '') + messageToOtheruserString
                             if onlineUserSocket not in wlistList:
                                 wlistList.append(onlineUserSocket)
@@ -106,7 +111,11 @@ try:
                         onlineUserSockets = serverHandler.getOnlineUserSocket()
                         onlineUserSockets.remove(sock)
 
+                        blockedUserSockets = loginUser.getBlockedUserSocket()
+
                         for onlineUserSocket in onlineUserSockets:
+                            if onlineUserSocket in blockedUserSockets:
+                                continue
                             data[onlineUserSocket] = data.get(onlineUserSocket, '') + messageToOtheruserString
                             if onlineUserSocket not in wlistList:
                                 wlistList.append(onlineUserSocket)
@@ -168,7 +177,6 @@ try:
 
                     else:
                         replyMessageString = json.dumps(replyMessageJson)
-                        # print replyMessageString
                         data[sock] = data.get(sock, '') + replyMessageString
                         if sock not in wlistList:
                             wlistList.append(sock)
@@ -179,7 +187,6 @@ try:
             if tosend:
                 nsent = sock.send(tosend)
                 # remember data still to be sent, if any
-                print nsent, sock
                 tosend = tosend[nsent:]
 
             if tosend:

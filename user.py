@@ -29,11 +29,11 @@ class User:
     ##################################################################################
     # client socket
     ##################################################################################
-    def setClientPort(self, clientPort):
-        self.clientPort = clientPort
-
-    def getClientPort(self):
-        return self.clientPort
+    # def setClientPort(self, clientPort):
+    #     self.clientPort = clientPort
+    #
+    # def getClientPort(self):
+    #     return self.clientPort
 
     def setClientSocket(self, sock):
         self.sock = sock
@@ -101,6 +101,13 @@ class User:
             beBlockedBySocket = beBlockedByUser.getClientSocket()
             beBlockedByUserSockets.append(beBlockedBySocket)
         return beBlockedByUserSockets
+
+    def getBlockedUserSocket(self):
+        blockedUserSockets = []
+        for blockedUser in self.blockUserList:
+            blockedUserSocket = blockedUser.getClientSocket()
+            blockedUserSockets.append(blockedUserSocket)
+        return blockedUserSockets
 
     ##################################################################################
     # offline message
