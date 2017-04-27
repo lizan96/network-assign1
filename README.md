@@ -3,7 +3,7 @@
 instant message application
 WILL support
 - User Authentication 
-- Timeout 
+- Timeout (not implement)
 - Presence Broadcasts
 - List of online users
 - Online history
