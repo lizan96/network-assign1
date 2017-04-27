@@ -16,29 +16,36 @@ def processClientRequest(clientMessage, sock, blockDuration, timeout):
         logging.debug("log in process start")
         processLogin(clientMessage, sock, blockDuration, timeout)
         return LOGIN_REPLY_MESSAGE
+
     if clientAction == LOGOUT:
         username = getRequestUsername(clientMessage)
         processLogout(username)
         return LOGOUT_REPLY_MESSAGE
+
     if clientAction == WHOELSE:
         username = getRequestUsername(clientMessage)
         onlineUserNames = processWhoelse(username)
         WHOELSE_REPLY_MESSAGE["DisplayMessage"] = onlineUserNames
         return WHOELSE_REPLY_MESSAGE
+
     if clientAction == WHOELSESINCE:
         username = getRequestUsername(clientMessage)
         timeSince = clientMessage["WhoelseSinceTime"]
         onlineUserNamesSinceTime = processWhoelseSince(username, timeSince)
         WHOELSE_REPLY_MESSAGE["DisplayMessage"] = onlineUserNamesSinceTime
         return WHOELSE_REPLY_MESSAGE
+
     if clientAction == BROADCAST:
         return BROADCAST_REPLY_MESSAGE
+
     if clientAction == MESSAGE:
         processMessage(clientMessage)
         return MESSAGE_REPLY_TO_SENDER
+
     if clientAction == BLOCK:
         processBlock(clientMessage)
         return BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE
+
     if clientAction == UNBLOCK:
         processUnblock(clientMessage)
         return BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE
@@ -181,14 +188,21 @@ def processWhoelseSince(username, timeSince):
 
 def processMessage(clientMessage):
     username = getRequestUsername(clientMessage)
-    messageToReceiver = clientMessage["ReceiverName"]
-    receiver = getUserFromUsername(messageToReceiver)
+    sender = getUserFromUsername(username)
+    receiverName = clientMessage["ReceiverName"]
+    receiver = getUserFromUsername(receiverName)
+
+    beBlockedByUsers = sender.getBeBlockedByUserList()
+
     if receiver.getUsername() == "NoSuchUser":
         MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = False
         MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = "Error. Invalid user"
     elif receiver.getUsername() == username:
         MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = False
         MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = "Error. You cannot send message to yourself"
+    elif receiver in beBlockedByUsers:
+        MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = False
+        MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = "Your message could not be delivered as the recipient has blocked you"
     else:
         MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = True
 
