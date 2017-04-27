@@ -33,6 +33,9 @@ def processClientRequest(clientMessage, sock, blockDuration, timeout):
         return WHOELSE_REPLY_MESSAGE
     if clientAction == BROADCAST:
         return GENERAL_REPLY_MESSAGE
+    if clientAction == MESSAGE:
+        processMessage(clientMessage)
+        return MESSAGE_REPLY_TO_SENDER
 
 
 def createUserObject(clientInputUsername):
@@ -168,6 +171,16 @@ def processWhoelseSince(username, timeSince):
 
     whoelseSinceString = convertListToString(whoelseSince)
     return whoelseSinceString
+
+def processMessage(clientMessage):
+    username = getRequestUsername(clientMessage)
+    messageToReceiver = clientMessage["MessageToReceivername"]
+    receiver = getUserFromUsername(messageToReceiver)
+    if receiver.getUsername() == "NoSuchUser":
+        MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = False
+    if receiver.getUsername() == username:
+        MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = False
+        MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = "You cannot send message to yourself"
 
 def getOnlineUser():
     onlineUserList = []

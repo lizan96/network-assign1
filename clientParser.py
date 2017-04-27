@@ -24,6 +24,23 @@ def parseClientRequest(clientRequest):
         except:
             pass
         CLIENT_MESSAGE["BroadcastMessage"] = broadcastMessage
+    elif actionRequested == "message":
+        CLIENT_MESSAGE["Action"] = MESSAGE
+        try:
+            messageToReceivername = request[1]
+            CLIENT_MESSAGE["MessageToReceivername"] = messageToReceivername
+        except:
+            CLIENT_MESSAGE["Action"] = INVALID_ACTION
+
+        try:
+            message = request[2]
+            for messageString in request[3:]:
+                message = message + " "+ messageString
+            CLIENT_MESSAGE["Message"] = message
+        except:
+            CLIENT_MESSAGE["Action"] = NO_MESSAGE_TO_SEND
+
+
     else:
-        CLIENT_MESSAGE["Action"] = ACTION_UNKOWN
+        CLIENT_MESSAGE["Action"] = INVALID_ACTION
     return CLIENT_MESSAGE

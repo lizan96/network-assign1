@@ -68,8 +68,12 @@ recv_thread.start()
 while True:
     clientRequest = raw_input('')
     clientRequestJson = parseClientRequest(clientRequest)
-    if clientRequestJson["Action"] == ACTION_UNKOWN:
+    if clientRequestJson["Action"] == INVALID_ACTION:
         print INVALID_COMMAND
+        continue
+
+    if clientRequestJson["Action"] == NO_MESSAGE_TO_SEND:
+        print NO_MESSGAE_TO_SEND_REPLY
         continue
 
     clientRequestString = json.dumps(CLIENT_MESSAGE)
@@ -78,6 +82,5 @@ while True:
 
     if clientRequestJson["Action"] == LOGOUT:
         sys.exit()
-    print "WTF"
 
 sys.exit()

@@ -43,3 +43,15 @@ BROADCAST_TO_OTHER_USER = {
     "DisplayMessage": "",
     "KeepConnect": True
 }
+
+MESSAGE_TO_RECEIVER = {
+    "DisplayMessage": "",
+    "KeepConnect": True
+}
+
+MESSAGE_REPLY_TO_SENDER = {
+    "BroadcastFromUsername": "",
+    "DisplayMessage": "",
+    "KeepConnect": True,
+    "MessageSendSuccess": True
+}

@@ -108,7 +108,6 @@ try:
                         rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
 
                     elif clientMessageJson["Action"] == BROADCAST:
-                        print clientMessageJson["Username"], "broadcasting"
                         displayMessage = clientMessageJson["Username"] + ": " + clientMessageJson["BroadcastMessage"]
                         BROADCAST_TO_OTHER_USER["DisplayMessage"] = displayMessage
                         broadcastToOtherUserString = json.dumps(BROADCAST_TO_OTHER_USER)
@@ -120,6 +119,23 @@ try:
                             data[onlineUserSocket] = data.get(onlineUserSocket, '') + broadcastToOtherUserString
                             if onlineUserSocket not in wlistList:
                                 wlistList.append(onlineUserSocket)
+
+                    elif clientMessageJson["Action"] == MESSAGE:
+                        messageToReceivername = clientMessageJson["MessageToReceivername"]
+                        print messageToReceivername
+                        messageToReceiver = serverHandler.getUserFromUsername(messageToReceivername)
+                        print messageToReceiver
+                        messageToReceiverSocket = messageToReceiver.getClientSocket()
+                        print messageToReceiverSocket
+
+                        message = clientMessageJson["Message"]
+                        displayMessage = clientMessageJson["Username"] + ": " + message
+                        MESSAGE_TO_RECEIVER["DisplayMessage"] = displayMessage
+                        messageToReceiverString = json.dumps(MESSAGE_TO_RECEIVER)
+
+                        data[messageToReceiverSocket] = data.get(messageToReceiverSocket, '') + messageToReceiverString
+                        if messageToReceiverSocket not in wlistList:
+                            wlistList.append(messageToReceiverSocket)
 
                     else:
                         replyMessageString = json.dumps(replyMessageJson)
