@@ -174,7 +174,7 @@ def processWhoelseSince(username, timeSince):
 
 def processMessage(clientMessage):
     username = getRequestUsername(clientMessage)
-    messageToReceiver = clientMessage["MessageToReceivername"]
+    messageToReceiver = clientMessage["ReceiverName"]
     receiver = getUserFromUsername(messageToReceiver)
     if receiver.getUsername() == "NoSuchUser":
         MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = False

@@ -28,7 +28,7 @@ def parseClientRequest(clientRequest):
         CLIENT_MESSAGE["Action"] = MESSAGE
         try:
             messageToReceivername = request[1]
-            CLIENT_MESSAGE["MessageToReceivername"] = messageToReceivername
+            CLIENT_MESSAGE["ReceiverName"] = messageToReceivername
         except:
             CLIENT_MESSAGE["Action"] = INVALID_ACTION
 

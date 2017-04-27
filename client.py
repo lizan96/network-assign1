@@ -23,12 +23,19 @@ clientRequest = json.dumps(CLIENT_MESSAGE)
 clientSocket.send(clientRequest)
 
 receivedMessage = clientSocket.recv(1024)
-receivedMessageJson = json.loads(receivedMessage)
-desplayMessage = receivedMessageJson["DisplayMessage"]
-if receivedMessageJson["LoginSuccess"]:
-    isContinueLoggingIn = False
-keepConnect = receivedMessageJson["KeepConnect"]
-print desplayMessage
+receivedMessage = receivedMessage.split("/")
+
+for message in receivedMessage:
+    print message
+    receivedMessageJson = json.loads(message)
+    desplayMessage = receivedMessageJson["DisplayMessage"]
+
+    try:
+        if receivedMessageJson["LoginSuccess"]:
+            isContinueLoggingIn = False
+    except:
+        pass
+    print desplayMessage
 
 while keepConnect and isContinueLoggingIn:
     if receivedMessageJson["LoginStatus"] == LOGIN_NO_SUCH_USER:
@@ -41,22 +48,30 @@ while keepConnect and isContinueLoggingIn:
     clientSocket.send(clientRequest)
 
     receivedMessage = clientSocket.recv(1024)
-    receivedMessageJson = json.loads(receivedMessage)
-    desplayMessage = receivedMessageJson["DisplayMessage"]
-    if receivedMessageJson["LoginSuccess"]:
-        isContinueLoggingIn = False
-    keepConnect = receivedMessageJson["KeepConnect"]
-    print desplayMessage
-    # if not keepConnect:
-    #     sys.exit()
+    receivedMessage = receivedMessage.split()
+
+    for message in receivedMessage:
+        receivedMessageJson = json.loads(message)
+        desplayMessage = receivedMessageJson["DisplayMessage"]
+
+        try:
+            if receivedMessageJson["LoginSuccess"]:
+                isContinueLoggingIn = False
+        except:
+            pass
+        keepConnect = receivedMessageJson["KeepConnect"]
+        print desplayMessage
+
 
 def receiveMessageFromServer():
     while True:
         try:
             receivedMessage = clientSocket.recv(1024)
+
             receivedMessageJson = json.loads(receivedMessage)
             desplayMessage = receivedMessageJson["DisplayMessage"]
             print desplayMessage
+
         except:
             pass
 

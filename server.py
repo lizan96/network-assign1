@@ -83,6 +83,8 @@ try:
 
                     elif (clientMessageJson["Action"] == LOGIN and replyMessageJson["LoginStatus"] == LOGIN_SUCCESS):
                         loginUsername = replyMessageJson["Username"]
+                        loginUser = serverHandler.getUserFromUsername(loginUsername)
+
                         LOGIN_TO_OTHER_USER["DisplayMessage"] = loginUsername + " logged in"
 
                         messageToOtheruserJson = LOGIN_TO_OTHER_USER
@@ -90,6 +92,15 @@ try:
 
                         replyMessageString = json.dumps(replyMessageJson)
                         data[sock] = data.get(sock, '') + replyMessageString
+
+                        offlineMessage = loginUser.getOfflineMessageInString()
+                        if offlineMessage:
+                            print "have offline message"
+                            MESSAGE_TO_RECEIVER["DisplayMessage"] = offlineMessage
+                            messageToReceiverString = json.dumps(MESSAGE_TO_RECEIVER)
+                            data[sock] = data.get(sock, '') + "/" + messageToReceiverString
+                            print messageToReceiverString
+
                         if sock not in wlistList:
                             wlistList.append(sock)
 
@@ -121,21 +132,21 @@ try:
                                 wlistList.append(onlineUserSocket)
 
                     elif clientMessageJson["Action"] == MESSAGE:
-                        messageToReceivername = clientMessageJson["MessageToReceivername"]
-                        print messageToReceivername
-                        messageToReceiver = serverHandler.getUserFromUsername(messageToReceivername)
-                        print messageToReceiver
-                        messageToReceiverSocket = messageToReceiver.getClientSocket()
-                        print messageToReceiverSocket
-
+                        receiverName = clientMessageJson["ReceiverName"]
                         message = clientMessageJson["Message"]
                         displayMessage = clientMessageJson["Username"] + ": " + message
-                        MESSAGE_TO_RECEIVER["DisplayMessage"] = displayMessage
-                        messageToReceiverString = json.dumps(MESSAGE_TO_RECEIVER)
+                        receiver = serverHandler.getUserFromUsername(receiverName)
+                        receiverSocket = receiver.getClientSocket()
 
-                        data[messageToReceiverSocket] = data.get(messageToReceiverSocket, '') + messageToReceiverString
-                        if messageToReceiverSocket not in wlistList:
-                            wlistList.append(messageToReceiverSocket)
+                        if receiverSocket:
+                            MESSAGE_TO_RECEIVER["DisplayMessage"] = displayMessage
+                            messageToReceiverString = json.dumps(MESSAGE_TO_RECEIVER)
+
+                            data[receiverSocket] = data.get(receiverSocket, '') + messageToReceiverString
+                            if receiverSocket not in wlistList:
+                                wlistList.append(receiverSocket)
+                        else:
+                            receiver.addOfflineMessage(displayMessage)
 
                     else:
                         replyMessageString = json.dumps(replyMessageJson)

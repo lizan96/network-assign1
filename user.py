@@ -11,6 +11,7 @@ class User:
         self.sock = None
         self.blockUserList = []
         self.beBlockedByUserList = []
+        self.offLineMessage = []
 
     ##################################################################################
     def getUsername(self):
@@ -77,3 +78,18 @@ class User:
 
     def getBeBlockedByUserList(self):
         return self.beBlockedByUserList
+
+    ##################################################################################
+    ##################################################################################
+    def addOfflineMessage(self, message):
+        self.offLineMessage.append(message)
+
+    def getOfflineMessageInString(self):
+        allOfflineMessage = ""
+        try:
+            allOfflineMessage = self.offLineMessage[0]
+            for message in self.offLineMessage[1:]:
+                allOfflineMessage = allOfflineMessage + "\n" + message
+        except:
+            pass
+        return allOfflineMessage
