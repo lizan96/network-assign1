@@ -7,7 +7,7 @@ from globalVariable import *
 
 userList = []
 
-fakeUser = User("NosuchUser")
+fakeUser = User("NoSuchUser")
 
 def processClientRequest(clientMessage, sock, blockDuration, timeout):
     clientAction = clientMessage["Action"]
@@ -32,10 +32,16 @@ def processClientRequest(clientMessage, sock, blockDuration, timeout):
         WHOELSE_REPLY_MESSAGE["DisplayMessage"] = onlineUserNamesSinceTime
         return WHOELSE_REPLY_MESSAGE
     if clientAction == BROADCAST:
-        return GENERAL_REPLY_MESSAGE
+        return BROADCAST_REPLY_MESSAGE
     if clientAction == MESSAGE:
         processMessage(clientMessage)
         return MESSAGE_REPLY_TO_SENDER
+    if clientAction == BLOCK:
+        processBlock(clientMessage)
+        return BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE
+    if clientAction == UNBLOCK:
+        processUnblock(clientMessage)
+        return BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE
 
 
 def createUserObject(clientInputUsername):
@@ -68,11 +74,11 @@ def processLogin(clientMessage, sock, blockDuration, timeout):
     LOGIN_REPLY_MESSAGE["Username"] = requestUsername
 
     requestUserAttemptTime = requestUser.getAttemptTime()
-    # block account username
 
     if requestUserAttemptTime > 2:
         LOGIN_REPLY_MESSAGE["DisplayMessage"] = "Your account is blocked due to multiple login failures. Please try again later"
         LOGIN_REPLY_MESSAGE["KeepConnect"] = False
+        LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
         return LOGIN_REPLY_MESSAGE
 
     else:
@@ -91,8 +97,9 @@ def processLogin(clientMessage, sock, blockDuration, timeout):
 
         elif loginStatus == LOGIN_INVALID_PASSWORD:
             if requestUserAttemptTime == 2:
-                LOGIN_REPLY_MESSAGE["DisplayMessage"] = "Invalid Password. Your account has been blocked. Please try again later"
+                replyMessage = "Invalid Password. Your account has been blocked. Please try again later"
                 LOGIN_REPLY_MESSAGE["KeepConnect"] = False
+                LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
                 requestUser.increaseAttemptTime()
                 blockUser(requestUser, blockDuration)
             else:
@@ -178,9 +185,52 @@ def processMessage(clientMessage):
     receiver = getUserFromUsername(messageToReceiver)
     if receiver.getUsername() == "NoSuchUser":
         MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = False
-    if receiver.getUsername() == username:
+        MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = "Error. Invalid user"
+    elif receiver.getUsername() == username:
         MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = False
-        MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = "You cannot send message to yourself"
+        MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = "Error. You cannot send message to yourself"
+    else:
+        MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = True
+
+def processBlock(clientMessage):
+    usernameToBlock = clientMessage["BlockOrUnblockUserName"]
+    requestUsername = getRequestUsername(clientMessage)
+    requestUser = getUserFromUsername(requestUsername)
+    userToBlock = getUserFromUsername(usernameToBlock)
+
+    if usernameToBlock == requestUsername:
+        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. Cannot block self"
+    elif userToBlock.getUsername() == "NoSuchUser":
+        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. No such user"
+    else:
+        userToBlock.setBeBlockedByUser(requestUser)
+        requestUser.setBlockUser(userToBlock)
+        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = usernameToBlock + " is blocked"
+
+def processUnblock(clientMessage):
+    usernameToUnblock = clientMessage["BlockOrUnblockUserName"]
+    requestUsername = getRequestUsername(clientMessage)
+    requestUser = getUserFromUsername(requestUsername)
+    userToUnblock = getUserFromUsername(usernameToUnblock)
+
+    if usernameToUnblock == requestUsername:
+        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. Cannot unblock self"
+    elif usernameToUnblock == "NoSuchUser":
+        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. No such user"
+    else:
+        try:
+            userToUnblock.setBeUnblockedByUser(requestUser)
+            requestUser.setUnblockUser(userToUnblock)
+            BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = usernameToUnblock + " is unblocked"
+        except:
+            BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. " + usernameToUnblock + " was not blocked"
+
+
+##################################################################################
+##
+## Useful methods
+##
+##################################################################################
 
 def getOnlineUser():
     onlineUserList = []

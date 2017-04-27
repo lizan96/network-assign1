@@ -16,14 +16,18 @@ class User:
     ##################################################################################
     def getUsername(self):
         return self.username
+
     ##################################################################################
+    # password
     ##################################################################################
     def setPassword(self, password):
         self.password = password
 
     def getPassword(self):
         return self.password
+
     ##################################################################################
+    # client socket
     ##################################################################################
     def setClientPort(self, clientPort):
         self.clientPort = clientPort
@@ -36,7 +40,9 @@ class User:
 
     def getClientSocket(self):
         return self.sock
+
     ##################################################################################
+    # attemp time
     ##################################################################################
     def increaseAttemptTime(self):
         self.attemptTime += 1
@@ -54,6 +60,7 @@ class User:
     # def increaseBlockTime(self):
     #     self.blockTime += 1
     ##################################################################################
+    # user online status
     ##################################################################################
     def setUserStatus(self, status):
         self.online = status
@@ -66,20 +73,37 @@ class User:
 
     def isUserOnline(self):
         return self.online
+
     ##################################################################################
+    # block/unblock
     ##################################################################################
     def setBlockUser(self, user):
         self.blockUserList.append(user)
-    def getBlockUsersList(self):
-        return self.blockUserList
+
+    def setUnblockUser(self, user):
+        self.blockUserList.remove(user)
+
+    def setBeUnblockedByUser(self, user):
+        self.beBlockedByUserList.remove(user)
 
     def setBeBlockedByUser(self, user):
         self.beBlockedByUserList.append(user)
 
+    def getBlockUsersList(self):
+        return self.blockUserList
+
     def getBeBlockedByUserList(self):
         return self.beBlockedByUserList
 
+    def getBeBlockedByUserSocket(self):
+        beBlockedByUserSockets = []
+        for beBlockedByUser in self.beBlockedByUserList:
+            beBlockedBySocket = beBlockedByUser.getClientSocket()
+            beBlockedByUserSockets.append(beBlockedBySocket)
+        return beBlockedByUserSockets
+
     ##################################################################################
+    # offline message
     ##################################################################################
     def addOfflineMessage(self, message):
         self.offLineMessage.append(message)

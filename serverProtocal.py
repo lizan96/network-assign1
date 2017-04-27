@@ -2,13 +2,13 @@ import json
 from globalVariable import *
 
 LOGOUT_TO_OTHER_MESSAGE = "{} logged out"
+BROADCAST_FAILED_TO_SOME_USER = "Your message could not be delivered to some recipients"
 
 LOGIN_REPLY_MESSAGE = {
     "KeepConnect": True,
     "Username": "",
     "LoginSuccess": False,
     "DisplayMessage": "",
-    "BlockDuration": 0,
     "LoginStatus": LOGIN_NO_SUCH_USER
 }
 
@@ -33,7 +33,7 @@ WHOELSE_REPLY_MESSAGE = {
     "DisplayMessage": ""
 }
 
-GENERAL_REPLY_MESSAGE = {
+BROADCAST_REPLY_MESSAGE = {
     "KeepConnect": True,
     "DisplayMessage": ""
 }
@@ -54,4 +54,9 @@ MESSAGE_REPLY_TO_SENDER = {
     "DisplayMessage": "",
     "KeepConnect": True,
     "MessageSendSuccess": True
+}
+
+BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE = {
+    "KeepConnect": True,
+    "DisplayMessage": ""
 }

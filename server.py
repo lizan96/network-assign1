@@ -74,7 +74,6 @@ try:
                         rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
 
                         onlineUserSockets = serverHandler.getOnlineUserSocket()
-                        print onlineUserSockets
 
                         for onlineUserSocket in onlineUserSockets:
                             data[onlineUserSocket] = data.get(onlineUserSocket, '') + messageToOtheruserString
@@ -119,6 +118,9 @@ try:
                         rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
 
                     elif clientMessageJson["Action"] == BROADCAST:
+                        requestUsername = clientMessageJson["Username"]
+                        requestUser = serverHandler.getUserFromUsername(requestUsername)
+
                         displayMessage = clientMessageJson["Username"] + ": " + clientMessageJson["BroadcastMessage"]
                         BROADCAST_TO_OTHER_USER["DisplayMessage"] = displayMessage
                         broadcastToOtherUserString = json.dumps(BROADCAST_TO_OTHER_USER)
@@ -126,27 +128,43 @@ try:
                         onlineUserSockets = serverHandler.getOnlineUserSocket()
                         onlineUserSockets.remove(sock)
 
+                        beBlockedByUserSockets = requestUser.getBeBlockedByUserSocket()
+
                         for onlineUserSocket in onlineUserSockets:
+                            if onlineUserSocket in beBlockedByUserSockets:
+                                replyMessageJson["DisplayMessage"] = BROADCAST_FAILED_TO_SOME_USER
+                                replyMessageString = json.dumps(replyMessageJson)
+                                data[sock] = data.get(sock, '') + replyMessageString
+                                if sock not in wlistList:
+                                    wlistList.append(sock)
+                                continue
                             data[onlineUserSocket] = data.get(onlineUserSocket, '') + broadcastToOtherUserString
                             if onlineUserSocket not in wlistList:
                                 wlistList.append(onlineUserSocket)
 
                     elif clientMessageJson["Action"] == MESSAGE:
-                        receiverName = clientMessageJson["ReceiverName"]
-                        message = clientMessageJson["Message"]
-                        displayMessage = clientMessageJson["Username"] + ": " + message
-                        receiver = serverHandler.getUserFromUsername(receiverName)
-                        receiverSocket = receiver.getClientSocket()
+                        if replyMessageJson["MessageSendSuccess"] == False:
+                            replyMessageString = json.dumps(replyMessageJson)
+                            data[sock] = data.get(sock, '') + replyMessageString
+                            if sock not in wlistList:
+                                wlistList.append(sock)
 
-                        if receiverSocket:
-                            MESSAGE_TO_RECEIVER["DisplayMessage"] = displayMessage
-                            messageToReceiverString = json.dumps(MESSAGE_TO_RECEIVER)
-
-                            data[receiverSocket] = data.get(receiverSocket, '') + messageToReceiverString
-                            if receiverSocket not in wlistList:
-                                wlistList.append(receiverSocket)
                         else:
-                            receiver.addOfflineMessage(displayMessage)
+                            receiverName = clientMessageJson["ReceiverName"]
+                            message = clientMessageJson["Message"]
+                            displayMessage = clientMessageJson["Username"] + ": " + message
+                            receiver = serverHandler.getUserFromUsername(receiverName)
+                            receiverSocket = receiver.getClientSocket()
+
+                            if receiverSocket:
+                                MESSAGE_TO_RECEIVER["DisplayMessage"] = displayMessage
+                                messageToReceiverString = json.dumps(MESSAGE_TO_RECEIVER)
+
+                                data[receiverSocket] = data.get(receiverSocket, '') + messageToReceiverString
+                                if receiverSocket not in wlistList:
+                                    wlistList.append(receiverSocket)
+                            else:
+                                receiver.addOfflineMessage(displayMessage)
 
                     else:
                         replyMessageString = json.dumps(replyMessageJson)
@@ -172,7 +190,5 @@ try:
                 except KeyError:
                     pass
                 wlistList.remove(sock)
-                print "No data currently remain for", addresses[sock]
-
 finally:
     serverSocket.close()

@@ -26,16 +26,19 @@ receivedMessage = clientSocket.recv(1024)
 receivedMessage = receivedMessage.split("/")
 
 for message in receivedMessage:
-    print message
     receivedMessageJson = json.loads(message)
     desplayMessage = receivedMessageJson["DisplayMessage"]
 
     try:
         if receivedMessageJson["LoginSuccess"]:
             isContinueLoggingIn = False
+        keepConnect = receivedMessageJson["KeepConnect"]
     except:
         pass
     print desplayMessage
+
+if keepConnect == False:
+    sys.exit()
 
 while keepConnect and isContinueLoggingIn:
     if receivedMessageJson["LoginStatus"] == LOGIN_NO_SUCH_USER:
@@ -48,7 +51,7 @@ while keepConnect and isContinueLoggingIn:
     clientSocket.send(clientRequest)
 
     receivedMessage = clientSocket.recv(1024)
-    receivedMessage = receivedMessage.split()
+    receivedMessage = receivedMessage.split("/")
 
     for message in receivedMessage:
         receivedMessageJson = json.loads(message)
@@ -60,8 +63,11 @@ while keepConnect and isContinueLoggingIn:
         except:
             pass
         keepConnect = receivedMessageJson["KeepConnect"]
+
         print desplayMessage
 
+        if keepConnect == False:
+            sys.exit()
 
 def receiveMessageFromServer():
     while True:

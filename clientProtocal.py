@@ -10,5 +10,6 @@ CLIENT_MESSAGE = {
     "WhoelseSinceTime": 0,
     "BroadcastMessage": "",
     "ReceiverName": "",
-    "Message": ""
+    "Message": "",
+    "BlockOrUnblockUserName": ""
 }

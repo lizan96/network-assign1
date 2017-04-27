@@ -40,6 +40,15 @@ def parseClientRequest(clientRequest):
         except:
             CLIENT_MESSAGE["Action"] = NO_MESSAGE_TO_SEND
 
+    elif actionRequested == "block":
+        CLIENT_MESSAGE["Action"] = BLOCK
+        blockUsername = request[1]
+        CLIENT_MESSAGE["BlockOrUnblockUserName"] = blockUsername
+
+    elif actionRequested == "unblock":
+        CLIENT_MESSAGE["Action"] = UNBLOCK
+        unblockUsername = request[1]
+        CLIENT_MESSAGE["BlockOrUnblockUserName"] = unblockUsername
 
     else:
         CLIENT_MESSAGE["Action"] = INVALID_ACTION
