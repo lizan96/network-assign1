@@ -29,12 +29,6 @@ class User:
     ##################################################################################
     # client socket
     ##################################################################################
-    # def setClientPort(self, clientPort):
-    #     self.clientPort = clientPort
-    #
-    # def getClientPort(self):
-    #     return self.clientPort
-
     def setClientSocket(self, sock):
         self.sock = sock
 
@@ -42,7 +36,7 @@ class User:
         return self.sock
 
     ##################################################################################
-    # attemp time
+    # attempt time
     ##################################################################################
     def increaseAttemptTime(self):
         self.attemptTime += 1
@@ -52,13 +46,6 @@ class User:
 
     def getAttemptTime(self):
         return self.attemptTime
-    ##################################################################################
-    ##################################################################################
-    # def getBlockTime(self):
-    #     return self.blockTime
-    #
-    # def increaseBlockTime(self):
-    #     self.blockTime += 1
     ##################################################################################
     # user online status
     ##################################################################################
@@ -73,7 +60,6 @@ class User:
 
     def isUserOnline(self):
         return self.online
-
     ##################################################################################
     # block/unblock
     ##################################################################################

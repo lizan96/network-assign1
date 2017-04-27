@@ -6,7 +6,6 @@ from globalVariable import *
 
 
 userList = []
-
 fakeUser = User("NoSuchUser")
 
 def processClientRequest(clientMessage, sock, blockDuration, timeout):
@@ -18,21 +17,15 @@ def processClientRequest(clientMessage, sock, blockDuration, timeout):
         return LOGIN_REPLY_MESSAGE
 
     if clientAction == LOGOUT:
-        username = getRequestUsername(clientMessage)
-        processLogout(username)
+        processLogout(clientMessage)
         return LOGOUT_REPLY_MESSAGE
 
     if clientAction == WHOELSE:
-        username = getRequestUsername(clientMessage)
-        onlineUserNames = processWhoelse(username)
-        WHOELSE_REPLY_MESSAGE["DisplayMessage"] = onlineUserNames
+        processWhoelse(clientMessage)
         return WHOELSE_REPLY_MESSAGE
 
     if clientAction == WHOELSESINCE:
-        username = getRequestUsername(clientMessage)
-        timeSince = clientMessage["WhoelseSinceTime"]
-        onlineUserNamesSinceTime = processWhoelseSince(username, timeSince)
-        WHOELSE_REPLY_MESSAGE["DisplayMessage"] = onlineUserNamesSinceTime
+        processWhoelseSince(clientMessage)
         return WHOELSE_REPLY_MESSAGE
 
     if clientAction == BROADCAST:
@@ -50,40 +43,16 @@ def processClientRequest(clientMessage, sock, blockDuration, timeout):
         processUnblock(clientMessage)
         return BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE
 
-
-def createUserObject(clientInputUsername):
-    User(clientInputUsername)
-
-def createUserList():
-    f = open("credentials.txt", "r")
-    for line in f:
-        credential = line.split()
-        username = credential[0]
-        password = credential[1]
-        newUser = User(username)
-        newUser.setPassword(password)
-        userList.append(newUser)
-
-def getUserFromUsername(username):
-    for user in userList:
-        currentUsername = user.getUsername()
-        if currentUsername == username:
-            return user
-    return fakeUser
-
-def getRequestUsername(clientMessage):
-    username = clientMessage["Username"]
-    return username
-
 def processLogin(clientMessage, sock, blockDuration, timeout):
     requestUsername = getRequestUsername(clientMessage)
     requestUser = getUserFromUsername(requestUsername)
     LOGIN_REPLY_MESSAGE["Username"] = requestUsername
+    replyMessage = ""
 
     requestUserAttemptTime = requestUser.getAttemptTime()
 
     if requestUserAttemptTime > 2:
-        LOGIN_REPLY_MESSAGE["DisplayMessage"] = "Your account is blocked due to multiple login failures. Please try again later"
+        LOGIN_REPLY_MESSAGE["DisplayMessage"] = LOGIN_USER_BLOCKED_MESSAGE
         LOGIN_REPLY_MESSAGE["KeepConnect"] = False
         LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
         return LOGIN_REPLY_MESSAGE
@@ -100,29 +69,30 @@ def processLogin(clientMessage, sock, blockDuration, timeout):
         elif loginStatus == LOGIN_SUCCESS:
             LOGIN_REPLY_MESSAGE["LoginSuccess"] = True
             print requestUsername, "logged in"
-            replyMessage = "Welcome to the greatest messaging application ever"
+            replyMessage = LOGIN_WELCOME_MESSAGE
 
         elif loginStatus == LOGIN_INVALID_PASSWORD:
             if requestUserAttemptTime == 2:
-                replyMessage = "Invalid Password. Your account has been blocked. Please try again later"
+                replyMessage = LOGIN_BLOCK_USER_MESSAGE
                 LOGIN_REPLY_MESSAGE["KeepConnect"] = False
                 LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
                 requestUser.increaseAttemptTime()
                 blockUser(requestUser, blockDuration)
             else:
                 LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
-                replyMessage = "Invalid Password. Please try again"
+                replyMessage = LOGIN_INVALID_PASSWORD_MESSAGE
 
         elif loginStatus == LOGIN_USER_ALREADY_LOGGEDIN:
             LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
             LOGIN_REPLY_MESSAGE["KeepConnect"] = False
-            replyMessage = "User has already logged in"
+            replyMessage = LOGIN_USER_ALREADY_LOGGEDIN_MESSAGE
 
     LOGIN_REPLY_MESSAGE["LoginStatus"] = loginStatus
     LOGIN_REPLY_MESSAGE["DisplayMessage"] = replyMessage
 
 def login(clientInputUsername, clientInputPassword, sock):
     isUserFind = False
+    loginStatus = None
     for user in userList:
         currentUsername = user.getUsername()
         currentPassword = user.getPassword()
@@ -151,7 +121,8 @@ def login(clientInputUsername, clientInputPassword, sock):
         fakeUser.increaseAttemptTime()
     return loginStatus
 
-def processLogout(username):
+def processLogout(clientMessage):
+    username = getRequestUsername(clientMessage)
     user = getUserFromUsername(username)
     user.setUserStatus(False)
     user.setLastOnlineTime()
@@ -162,18 +133,24 @@ def processLogout(username):
     LOGOUT_REPLY_MESSAGE["DisplayMessage"] = "SEE YOU. BYE!!"
     print username, "logged out"
 
-def processWhoelse(username):
+def processWhoelse(clientMessage):
+    username = getRequestUsername(clientMessage)
     onlineUserNames = getOnlineUsername()
     onlineUserNames.remove(username)
     onlineUserNamesString = convertListToString(onlineUserNames)
-    return onlineUserNamesString
+    WHOELSE_REPLY_MESSAGE["DisplayMessage"] = onlineUserNamesString
 
-def processWhoelseSince(username, timeSince):
+def processWhoelseSince(clientMessage):
+    username = getRequestUsername(clientMessage)
+    timeSince = clientMessage["WhoelseSinceTime"]
+
+    # include all online users first
     onlineUserNames = getOnlineUsername()
     onlineUserNames.remove(username)
 
     whoelseSince = onlineUserNames
 
+    # then analyze offline users
     offlineUsers = getOfflineUser()
     for offlineUser in offlineUsers:
         lastOnlineTime = offlineUser.getLastOnlineTime()
@@ -184,7 +161,7 @@ def processWhoelseSince(username, timeSince):
             whoelseSince.append(offlineUser.getUsername())
 
     whoelseSinceString = convertListToString(whoelseSince)
-    return whoelseSinceString
+    WHOELSE_REPLY_MESSAGE["DisplayMessage"] = whoelseSinceString
 
 def processMessage(clientMessage):
     username = getRequestUsername(clientMessage)
@@ -196,15 +173,16 @@ def processMessage(clientMessage):
 
     if receiver.getUsername() == "NoSuchUser":
         MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = False
-        MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = "Error. Invalid user"
+        MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = INVALID_USER_MESSAGE
     elif receiver.getUsername() == username:
         MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = False
-        MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = "Error. You cannot send message to yourself"
+        MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = MESSAGE_SEND_TO_SELF_MESSAGE
     elif receiver in beBlockedByUsers:
         MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = False
-        MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = "Your message could not be delivered as the recipient has blocked you"
+        MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = MESSAGE_BE_BLOCKED_MESSAGE
     else:
         MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = True
+        print username + " sending to " + receiverName
 
 def processBlock(clientMessage):
     usernameToBlock = clientMessage["BlockOrUnblockUserName"]
@@ -213,9 +191,9 @@ def processBlock(clientMessage):
     userToBlock = getUserFromUsername(usernameToBlock)
 
     if usernameToBlock == requestUsername:
-        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. Cannot block self"
+        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = BLOCK_SELF_MESSAGE
     elif userToBlock.getUsername() == "NoSuchUser":
-        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. No such user"
+        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = INVALID_USER_MESSAGE
     else:
         userToBlock.setBeBlockedByUser(requestUser)
         requestUser.setBlockUser(userToBlock)
@@ -228,9 +206,9 @@ def processUnblock(clientMessage):
     userToUnblock = getUserFromUsername(usernameToUnblock)
 
     if usernameToUnblock == requestUsername:
-        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. Cannot unblock self"
+        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = BLOCK_SELF_MESSAGE
     elif usernameToUnblock == "NoSuchUser":
-        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. No such user"
+        BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = INVALID_USER_MESSAGE
     else:
         try:
             userToUnblock.setBeUnblockedByUser(requestUser)
@@ -239,12 +217,35 @@ def processUnblock(clientMessage):
         except:
             BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. " + usernameToUnblock + " was not blocked"
 
-
 ##################################################################################
 ##
 ## Useful methods
 ##
 ##################################################################################
+
+def createUserObject(clientInputUsername):
+    User(clientInputUsername)
+
+def createUserList():
+    f = open("credentials.txt", "r")
+    for line in f:
+        credential = line.split()
+        username = credential[0]
+        password = credential[1]
+        newUser = User(username)
+        newUser.setPassword(password)
+        userList.append(newUser)
+
+def getUserFromUsername(username):
+    for user in userList:
+        currentUsername = user.getUsername()
+        if currentUsername == username:
+            return user
+    return fakeUser
+
+def getRequestUsername(clientMessage):
+    username = clientMessage["Username"]
+    return username
 
 def getOnlineUser():
     onlineUserList = []
@@ -259,6 +260,15 @@ def getOnlineUserSocket():
         if user.isUserOnline():
             onlineUserSocketList.append(user.getClientSocket())
     return onlineUserSocketList
+
+def getOnlineUserExceptCurrentSocket(currentUser):
+    onlineUserExceptCurrentSockets = getOnlineUserSocket()
+    currentUserSocket = currentUser.getClientSocket()
+    try:
+        onlineUserExceptCurrentSockets.remove(currentUserSocket)
+    except:
+        pass
+    return onlineUserExceptCurrentSockets
 
 def getOnlineUsername():
     onlineUsernameList = []
