@@ -1,4 +1,4 @@
-import sys, json, time, logging
+import sys, json, time, logging, datetime
 from threading import *
 from serverProtocal import *
 from user import *
@@ -68,7 +68,6 @@ def processLogin(clientMessage, sock, blockDuration):
 
         elif loginStatus == LOGIN_SUCCESS:
             LOGIN_REPLY_MESSAGE["LoginSuccess"] = True
-            print requestUsername, "logged in"
             replyMessage = LOGIN_WELCOME_MESSAGE
 
         elif loginStatus == LOGIN_INVALID_PASSWORD:
@@ -105,6 +104,7 @@ def login(clientInputUsername, clientInputPassword, sock):
                 user.resetAttemptTime()
                 user.online = True
                 user.setClientSocket(sock)
+                print getTimestamp() + " " + currentUsername + " logged in"
             isUserFind = True
             break
         if currentUsername == clientInputUsername and currentPassword != clientInputPassword:
@@ -131,7 +131,7 @@ def processLogout(clientMessage):
     LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
     LOGOUT_REPLY_MESSAGE["KeepConnect"] = False
     LOGOUT_REPLY_MESSAGE["DisplayMessage"] = LOGOUT_MESSAGE
-    print username, "logged out"
+    print getTimestamp() + " " + username, "logged out"
 
 def processWhoelse(clientMessage):
     username = getRequestUsername(clientMessage)
@@ -182,7 +182,7 @@ def processMessage(clientMessage):
         MESSAGE_REPLY_TO_SENDER["DisplayMessage"] = MESSAGE_BE_BLOCKED_MESSAGE
     else:
         MESSAGE_REPLY_TO_SENDER["MessageSendSuccess"] = True
-        print username + " sending to " + receiverName
+        print getTimestamp() + " " + username + " sending to " + receiverName
 
 def processBlock(clientMessage):
     usernameToBlock = clientMessage["BlockOrUnblockUserName"]
@@ -198,6 +198,7 @@ def processBlock(clientMessage):
         userToBlock.setBeBlockedByUser(requestUser)
         requestUser.setBlockUser(userToBlock)
         BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = usernameToBlock + " is blocked"
+        print getTimestamp() + " " + requestUsername + " blocked " + usernameToBlock
 
 def processUnblock(clientMessage):
     usernameToUnblock = clientMessage["BlockOrUnblockUserName"]
@@ -216,6 +217,7 @@ def processUnblock(clientMessage):
             BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = usernameToUnblock + " is unblocked"
         except:
             BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. " + usernameToUnblock + " was not blocked"
+        print getTimestamp() + " " + requestUsername + " blocked " + usernameToUnblock
 
 ##################################################################################
 ## Useful methods
@@ -304,3 +306,7 @@ def resetUserAttemptTime(user):
 def blockUser(user, blockDuration):
     t = Timer(blockDuration, user.resetAttemptTime)
     t.start()
+
+def getTimestamp():
+    timestamp = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
+    return timestamp
