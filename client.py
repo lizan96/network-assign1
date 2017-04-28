@@ -1,4 +1,4 @@
-import logging, sys, json, threading
+import logging, sys, json, threading, os
 from clientProtocal import *
 from globalVariable import *
 from socket import *
@@ -16,9 +16,10 @@ def receiveMessageFromServer():
         try:
             receivedMessage = clientSocket.recv(1024)
             receivedMessageJson = json.loads(receivedMessage)
-            desplayMessage = receivedMessageJson["DisplayMessage"]
-            print desplayMessage
-
+            displayMessage = receivedMessageJson["DisplayMessage"]
+            print displayMessage
+            if displayMessage == LOGOUT_MESSAGE:
+                os._exit(1)
         except:
             pass
 
@@ -28,7 +29,6 @@ def loginClientProcess(receivedMessage):
     for message in receivedMessage:
         receivedMessageJson = json.loads(message)
         desplayMessage = receivedMessageJson["DisplayMessage"]
-
         try:
             if receivedMessageJson["LoginSuccess"]:
                 isContinueLoggingIn = False
@@ -39,7 +39,6 @@ def loginClientProcess(receivedMessage):
 
         if keepConnect == False:
             sys.exit()
-
     return receivedMessageJson, isContinueLoggingIn, keepConnect
 
 ##################################################################################
@@ -100,8 +99,5 @@ while True:
         continue
 
     sendMessageToServer()
-
-    if clientRequestJson["Action"] == LOGOUT:
-        sys.exit()
 
 sys.exit()

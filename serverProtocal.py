@@ -75,3 +75,14 @@ BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE = {
     "KeepConnect": True,
     "DisplayMessage": ""
 }
+
+AUTOMATICALLY_LOGOUT = {
+    "Action": LOGOUT,
+    "Username": "",
+    "Password": "",
+    "WhoelseSinceTime": 0,
+    "BroadcastMessage": "",
+    "ReceiverName": "",
+    "Message": "",
+    "BlockOrUnblockUserName": ""
+}

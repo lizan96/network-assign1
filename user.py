@@ -7,18 +7,20 @@ class User:
         self.blockTime = 0
         self.attemptTime = 0
         self.online = False
-        self.lastOnlineTime = 0
         self.sock = None
         self.blockUserList = []
         self.beBlockedByUserList = []
         self.offLineMessage = []
+        self.lastOnlineTime = 0
+        self.lastCommandSentTime = 0
+        self.isTimeout = False
 
     ##################################################################################
     def getUsername(self):
         return self.username
 
     ##################################################################################
-    # password
+    ## password
     ##################################################################################
     def setPassword(self, password):
         self.password = password
@@ -27,7 +29,7 @@ class User:
         return self.password
 
     ##################################################################################
-    # client socket
+    ## client socket
     ##################################################################################
     def setClientSocket(self, sock):
         self.sock = sock
@@ -36,7 +38,7 @@ class User:
         return self.sock
 
     ##################################################################################
-    # attempt time
+    ## attempt time
     ##################################################################################
     def increaseAttemptTime(self):
         self.attemptTime += 1
@@ -47,7 +49,7 @@ class User:
     def getAttemptTime(self):
         return self.attemptTime
     ##################################################################################
-    # user online status
+    ## user online status
     ##################################################################################
     def setUserStatus(self, status):
         self.online = status
@@ -61,7 +63,7 @@ class User:
     def isUserOnline(self):
         return self.online
     ##################################################################################
-    # block/unblock
+    ## block/unblock
     ##################################################################################
     def setBlockUser(self, user):
         self.blockUserList.append(user)
@@ -96,7 +98,7 @@ class User:
         return blockedUserSockets
 
     ##################################################################################
-    # offline message
+    ## offline message
     ##################################################################################
     def addOfflineMessage(self, message):
         self.offLineMessage.append(message)
@@ -110,3 +112,20 @@ class User:
         except:
             pass
         return allOfflineMessage
+
+    ##################################################################################
+    ## offline message
+    ##################################################################################
+    def setLastCommandSentTime(self):
+        self.lastCommandSentTime = time.time()
+
+    def getLastCommandSentTime(self):
+        return self.lastCommandSentTime
+
+    def checkTimeout(self, timeout):
+        isTimeout = False
+        currentTime = time.time()
+        inactivePeriod = currentTime - self.lastCommandSentTime
+        if inactivePeriod > timeout:
+            isTimeout = True
+        return isTimeout

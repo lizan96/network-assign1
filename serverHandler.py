@@ -8,12 +8,12 @@ from globalVariable import *
 userList = []
 fakeUser = User("NoSuchUser")
 
-def processClientRequest(clientMessage, sock, blockDuration, timeout):
+def processClientRequest(clientMessage, sock, blockDuration):
     clientAction = clientMessage["Action"]
 
     if clientAction == LOGIN:
         logging.debug("log in process start")
-        processLogin(clientMessage, sock, blockDuration, timeout)
+        processLogin(clientMessage, sock, blockDuration)
         return LOGIN_REPLY_MESSAGE
 
     if clientAction == LOGOUT:
@@ -43,7 +43,7 @@ def processClientRequest(clientMessage, sock, blockDuration, timeout):
         processUnblock(clientMessage)
         return BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE
 
-def processLogin(clientMessage, sock, blockDuration, timeout):
+def processLogin(clientMessage, sock, blockDuration):
     requestUsername = getRequestUsername(clientMessage)
     requestUser = getUserFromUsername(requestUsername)
     LOGIN_REPLY_MESSAGE["Username"] = requestUsername
@@ -130,7 +130,7 @@ def processLogout(clientMessage):
     LOGOUT_REPLY_MESSAGE["Username"] = username
     LOGIN_REPLY_MESSAGE["LoginSuccess"] = False
     LOGOUT_REPLY_MESSAGE["KeepConnect"] = False
-    LOGOUT_REPLY_MESSAGE["DisplayMessage"] = "SEE YOU. BYE!!"
+    LOGOUT_REPLY_MESSAGE["DisplayMessage"] = LOGOUT_MESSAGE
     print username, "logged out"
 
 def processWhoelse(clientMessage):
@@ -218,9 +218,7 @@ def processUnblock(clientMessage):
             BLOCK_OR_UNBLOCK_USER_REPLY_MESSAGE["DisplayMessage"] = "Error. " + usernameToUnblock + " was not blocked"
 
 ##################################################################################
-##
 ## Useful methods
-##
 ##################################################################################
 
 def createUserObject(clientInputUsername):
@@ -235,6 +233,7 @@ def createUserList():
         newUser = User(username)
         newUser.setPassword(password)
         userList.append(newUser)
+    return userList
 
 def getUserFromUsername(username):
     for user in userList:
@@ -242,6 +241,13 @@ def getUserFromUsername(username):
         if currentUsername == username:
             return user
     return fakeUser
+
+def getUserFromSocket(sock):
+    for user in userList:
+        userSocket = user.getClientSocket()
+        if userSocket == sock:
+            return user
+    return None
 
 def getRequestUsername(clientMessage):
     username = clientMessage["Username"]

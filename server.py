@@ -1,6 +1,5 @@
-import sys, json, time, logging
+import sys, json, time, logging, threading
 from socket import *
-from thread import *
 from select import *
 from serverProtocal import *
 import serverHandler
@@ -14,10 +13,19 @@ serverSocket = socket(AF_INET, SOCK_STREAM)
 serverSocket.bind(('', serverPort))
 serverSocket.listen(10)
 
+# receive from clients
+rlistList = [serverSocket]
+# send to clients
+wlistList = []
+# mapping socket to data to be sent
+data = {}
+# mapping socket to (host, port)
+addresses = {}
+
 print "Server started"
 
 # create user list according to credentials.txt when server starts
-serverHandler.createUserList()
+userList = serverHandler.createUserList()
 
 def disconnectSocket(rlistList, wlistList, addresses, sock):
     del addresses[sock]
@@ -36,140 +44,146 @@ def addMessageToSendList(jsonMessage, sock, wlistList, data):
         wlistList.append(sock)
     return wlistList, data
 
-# receive from clients
-rlistList = [serverSocket]
-# send to clients
-wlistList = []
-# mapping socket to data to be sent
-data = {}
-# mapping socket to (host, port)
-addresses = {}
+
+def logoutUser(replyMessageJson, rlistList, wlistList, addresses, sock, data):
+    logoutUsername = replyMessageJson["Username"]
+    logoutUser = serverHandler.getUserFromUsername(logoutUsername)
+    LOGOUT_TO_OTHER_USER["DisplayMessage"] = logoutUsername + " logged out"
+    replyMessageString = json.dumps(replyMessageJson)
+
+    sock.send(replyMessageString)
+    rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
+
+    onlineUserSockets = serverHandler.getOnlineUserSocket()
+    blockedUserSockets = logoutUser.getBlockedUserSocket()
+
+    for onlineUserSocket in onlineUserSockets:
+        if onlineUserSocket in blockedUserSockets:
+            continue
+        wlistList, data = addMessageToSendList(LOGOUT_TO_OTHER_USER, onlineUserSocket, wlistList, data)
+    return rlistList, wlistList, addresses, data
 
 try:
     # server always on
     while True:
-        rlist, wlist, xlist = select(rlistList, wlistList, [])
-        for sock in rlist:
-            if sock is serverSocket:
-                # client trying to connect
-                newSocket, address = serverSocket.accept()
-                print "Connected from", address[0], ":", address[1]
-                rlistList.append(newSocket)
-                addresses[newSocket] = address
-            else:
-                # other events
-                clientMessage = sock.recv(1024).decode('utf-8')
-                if clientMessage:
-                    clientMessageJson = json.loads(clientMessage)
-                    replyMessageJson = serverHandler.processClientRequest(clientMessageJson, sock, blockDuration, timeout)
+        try:
+            rlist, wlist, xlist = select(rlistList, wlistList, [])
 
-                    if clientMessageJson["Action"] == LOGOUT:
-                        logoutUsername = replyMessageJson["Username"]
-                        logoutUser = serverHandler.getUserFromUsername(logoutUsername)
-                        LOGOUT_TO_OTHER_USER["DisplayMessage"] = logoutUsername + " logged out"
-                        messageToOtherUserJson = LOGOUT_TO_OTHER_USER
-                        replyMessageString = json.dumps(replyMessageJson)
+            for sock in rlist:
+                if sock is serverSocket:
+                    # client trying to connect
+                    newSocket, address = serverSocket.accept()
+                    print "Connected from", address[0], ":", address[1]
+                    newSocket.settimeout(timeout)
+                    rlistList.append(newSocket)
+                    addresses[newSocket] = address
 
-                        sock.send(replyMessageString)
-                        rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
+                else:
+                    # receiving request from clients
+                    clientMessage = sock.recv(1024).decode('utf-8')
+                    if clientMessage:
+                        clientMessageJson = json.loads(clientMessage)
+                        replyMessageJson = serverHandler.processClientRequest(clientMessageJson, sock, blockDuration)
 
-                        onlineUserSockets = serverHandler.getOnlineUserSocket()
+                        clientUsername = clientMessageJson["Username"]
+                        clientUser = serverHandler.getUserFromUsername(clientUsername)
+                        clientUser.setLastCommandSentTime()
 
-                        blockedUserSockets = logoutUser.getBlockedUserSocket()
+                        if clientMessageJson["Action"] == LOGOUT:
+                            rlistList, wlistList, addresses, data = logoutUser(replyMessageJson, rlistList, wlistList, addresses, sock, data)
 
-                        for onlineUserSocket in onlineUserSockets:
-                            if onlineUserSocket in blockedUserSockets:
-                                continue
-                            wlistList, data = addMessageToSendList(messageToOtherUserJson, onlineUserSocket, wlistList, data)
+                        elif clientMessageJson["Action"] == LOGIN:
+                            if replyMessageJson["LoginStatus"] == LOGIN_SUCCESS:
+                                loginUsername = replyMessageJson["Username"]
+                                loginUser = serverHandler.getUserFromUsername(loginUsername)
 
-                    elif (clientMessageJson["Action"] == LOGIN and replyMessageJson["LoginStatus"] == LOGIN_SUCCESS):
-                        loginUsername = replyMessageJson["Username"]
-                        loginUser = serverHandler.getUserFromUsername(loginUsername)
+                                LOGIN_TO_OTHER_USER["DisplayMessage"] = loginUsername + " logged in"
 
-                        LOGIN_TO_OTHER_USER["DisplayMessage"] = loginUsername + " logged in"
+                                replyMessageString = json.dumps(replyMessageJson)
+                                data[sock] = data.get(sock, '') + replyMessageString
 
-                        messageToOtherUserJson = LOGIN_TO_OTHER_USER
+                                offlineMessage = loginUser.getOfflineMessageInString()
+                                if offlineMessage:
+                                    print "have offline message"
+                                    MESSAGE_TO_RECEIVER["DisplayMessage"] = offlineMessage
+                                    messageToReceiverString = json.dumps(MESSAGE_TO_RECEIVER)
+                                    data[sock] = data.get(sock, '') + "/" + messageToReceiverString
+                                    print messageToReceiverString
 
-                        replyMessageString = json.dumps(replyMessageJson)
-                        data[sock] = data.get(sock, '') + replyMessageString
+                                if sock not in wlistList:
+                                    wlistList.append(sock)
 
-                        offlineMessage = loginUser.getOfflineMessageInString()
-                        if offlineMessage:
-                            print "have offline message"
-                            MESSAGE_TO_RECEIVER["DisplayMessage"] = offlineMessage
-                            messageToReceiverString = json.dumps(MESSAGE_TO_RECEIVER)
-                            data[sock] = data.get(sock, '') + "/" + messageToReceiverString
-                            print messageToReceiverString
+                                onlineUserSockets = serverHandler.getOnlineUserExceptCurrentSocket(loginUser)
+                                blockedUserSockets = loginUser.getBlockedUserSocket()
 
-                        if sock not in wlistList:
-                            wlistList.append(sock)
-
-                        onlineUserSockets = serverHandler.getOnlineUserExceptCurrentSocket(loginUser)
-                        blockedUserSockets = loginUser.getBlockedUserSocket()
-
-                        for onlineUserSocket in onlineUserSockets:
-                            if onlineUserSocket in blockedUserSockets:
-                                continue
-                            wlistList, data = addMessageToSendList(messageToOtherUserJson, onlineUserSocket,
-                                                                       wlistList, data)
-
-                    elif clientMessageJson["Action"] == LOGIN:
-                        if replyMessageJson["KeepConnect"] == False:
-                            replyMessageString = json.dumps(replyMessageJson)
-                            insent = sock.send(replyMessageString)
-                            print "logout: disconnected", addresses[sock]
-                            rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
-
-                    elif clientMessageJson["Action"] == BROADCAST:
-                        requestUsername = clientMessageJson["Username"]
-                        requestUser = serverHandler.getUserFromUsername(requestUsername)
-                        print requestUsername + " broadcasting"
-
-                        displayMessage = clientMessageJson["Username"] + ": " + clientMessageJson["BroadcastMessage"]
-                        BROADCAST_TO_OTHER_USER["DisplayMessage"] = displayMessage
-
-                        onlineUserSockets = serverHandler.getOnlineUserExceptCurrentSocket(requestUser)
-
-                        beBlockedByUserSockets = requestUser.getBeBlockedByUserSocket()
-
-                        for onlineUserSocket in onlineUserSockets:
-                            if onlineUserSocket in beBlockedByUserSockets:
-                                replyMessageJson["DisplayMessage"] = BROADCAST_FAILED_TO_SOME_USER
-                                wlistList, data = addMessageToSendList(replyMessageJson, sock, wlistList, data)
-                                continue
-                            wlistList, data = addMessageToSendList(BROADCAST_TO_OTHER_USER, onlineUserSocket, wlistList, data)
-
-                    elif clientMessageJson["Action"] == MESSAGE:
-                        if replyMessageJson["MessageSendSuccess"] == False:
-                            wlistList, data = addMessageToSendList(replyMessageJson, sock, wlistList, data)
-                        else:
-                            receiverName = clientMessageJson["ReceiverName"]
-                            message = clientMessageJson["Message"]
-                            displayMessage = clientMessageJson["Username"] + ": " + message
-                            receiver = serverHandler.getUserFromUsername(receiverName)
-                            receiverSocket = receiver.getClientSocket()
-
-                            if receiverSocket:
-                                MESSAGE_TO_RECEIVER["DisplayMessage"] = displayMessage
-                                wlistList, data = addMessageToSendList(MESSAGE_TO_RECEIVER, receiverSocket, wlistList, data)
+                                for onlineUserSocket in onlineUserSockets:
+                                    if onlineUserSocket in blockedUserSockets:
+                                        continue
+                                    wlistList, data = addMessageToSendList(LOGIN_TO_OTHER_USER, onlineUserSocket,
+                                                                           wlistList, data)
+                            elif replyMessageJson["KeepConnect"] == False:
+                                print "ashoifasjofjao fjoiasjfoisajf"
+                                replyMessageString = json.dumps(replyMessageJson)
+                                insent = sock.send(replyMessageString)
+                                print "logout: disconnected", addresses[sock]
+                                rlistList, wlistList, addresses = disconnectSocket(rlistList, wlistList, addresses, sock)
                             else:
-                                receiver.addOfflineMessage(displayMessage)
-                    else:
-                        wlistList, data = addMessageToSendList(replyMessageJson, sock, wlistList, data)
+                                wlistList, data = addMessageToSendList(replyMessageJson, sock, wlistList, data)
 
-        for sock in wlist:
-            tosend = data.get(sock)
-            if tosend:
-                nsent = sock.send(tosend)
-                # remember data still to be sent, if any
-                tosend = tosend[nsent:]
-            if tosend:
-                data[sock] = tosend
-            else:
-                try:
-                    del data[sock]
-                except KeyError:
-                    pass
-                wlistList.remove(sock)
+                        elif clientMessageJson["Action"] == BROADCAST:
+                            requestUsername = clientMessageJson["Username"]
+                            requestUser = serverHandler.getUserFromUsername(requestUsername)
+                            print requestUsername + " broadcasting"
+
+                            displayMessage = clientMessageJson["Username"] + ": " + clientMessageJson["BroadcastMessage"]
+                            BROADCAST_TO_OTHER_USER["DisplayMessage"] = displayMessage
+
+                            onlineUserSockets = serverHandler.getOnlineUserExceptCurrentSocket(requestUser)
+
+                            beBlockedByUserSockets = requestUser.getBeBlockedByUserSocket()
+
+                            for onlineUserSocket in onlineUserSockets:
+                                if onlineUserSocket in beBlockedByUserSockets:
+                                    replyMessageJson["DisplayMessage"] = BROADCAST_FAILED_TO_SOME_USER
+                                    wlistList, data = addMessageToSendList(replyMessageJson, sock, wlistList, data)
+                                    continue
+                                wlistList, data = addMessageToSendList(BROADCAST_TO_OTHER_USER, onlineUserSocket, wlistList, data)
+
+                        elif clientMessageJson["Action"] == MESSAGE:
+                            if replyMessageJson["MessageSendSuccess"] == False:
+                                wlistList, data = addMessageToSendList(replyMessageJson, sock, wlistList, data)
+                            else:
+                                receiverName = clientMessageJson["ReceiverName"]
+                                message = clientMessageJson["Message"]
+                                displayMessage = clientMessageJson["Username"] + ": " + message
+                                receiver = serverHandler.getUserFromUsername(receiverName)
+                                receiverSocket = receiver.getClientSocket()
+
+                                if receiverSocket:
+                                    MESSAGE_TO_RECEIVER["DisplayMessage"] = displayMessage
+                                    wlistList, data = addMessageToSendList(MESSAGE_TO_RECEIVER, receiverSocket, wlistList, data)
+                                else:
+                                    receiver.addOfflineMessage(displayMessage)
+                        else:
+                            wlistList, data = addMessageToSendList(replyMessageJson, sock, wlistList, data)
+
+            for sock in wlist:
+                tosend = data.get(sock)
+                if tosend:
+                    nsent = sock.send(tosend)
+                    # remember data still to be sent
+                    tosend = tosend[nsent:]
+                # if some data left
+                if tosend:
+                    data[sock] = tosend
+                else:
+                    try:
+                        del data[sock]
+                    except KeyError:
+                        pass
+                    wlistList.remove(sock)
+        except socket.timeout:
+            logoutUser(user)
+
 finally:
     serverSocket.close()
