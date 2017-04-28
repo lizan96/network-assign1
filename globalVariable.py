@@ -16,3 +16,4 @@ LOGIN_USER_BLOCKED = 3
 LOGIN_USER_ALREADY_LOGGEDIN = 4
 
 LOGOUT_MESSAGE = "SEE YOU. BYE!!"
+LOGOUT_TIMEOUT = "Your session has been disconneted due to long time no action"

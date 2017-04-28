@@ -86,3 +86,10 @@ AUTOMATICALLY_LOGOUT = {
     "Message": "",
     "BlockOrUnblockUserName": ""
 }
+
+AUTOMATICALLY_LOGOUT_REPLY_MESSAGE = {
+    "KeepConnect": False,
+    "Username": "",
+    "DisplayMessage": LOGOUT_TIMEOUT
+}
+

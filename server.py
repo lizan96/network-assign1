@@ -22,6 +22,9 @@ data = {}
 # mapping socket to (host, port)
 addresses = {}
 
+# socket list without serverSocket
+socketList = []
+
 print "Server started"
 
 # create user list according to credentials.txt when server starts
@@ -67,17 +70,31 @@ try:
     # server always on
     while True:
         try:
-            rlist, wlist, xlist = select(rlistList, wlistList, [])
+            for sock in socketList:
+                try:
+                    socketUser = serverHandler.getUserFromSocket(sock)
+                    isTimeout = socketUser.checkTimeout(timeout)
+                    if isTimeout:
+                        AUTOMATICALLY_LOGOUT["Username"] = socketUser.getUsername()
+                        clientMessageJson = AUTOMATICALLY_LOGOUT
+                        replyMessageJson = serverHandler.processClientRequest(clientMessageJson, sock, blockDuration)
+                        AUTOMATICALLY_LOGOUT_REPLY_MESSAGE["Username"] = socketUser.getUsername()
+                        replyMessageJson = AUTOMATICALLY_LOGOUT_REPLY_MESSAGE
+                        rlistList, wlistList, addresses, data = logoutUser(replyMessageJson, rlistList, wlistList,
+                                                                           addresses, sock, data)
+                        socketList.remove(sock)
+                except:
+                    pass
 
+            rlist, wlist, xlist = select(rlistList, wlistList, [], 1)
             for sock in rlist:
                 if sock is serverSocket:
                     # client trying to connect
                     newSocket, address = serverSocket.accept()
                     print "Connected from", address[0], ":", address[1]
-                    newSocket.settimeout(timeout)
                     rlistList.append(newSocket)
+                    socketList.append(newSocket)
                     addresses[newSocket] = address
-
                 else:
                     # receiving request from clients
                     clientMessage = sock.recv(1024).decode('utf-8')
@@ -88,6 +105,7 @@ try:
                         clientUsername = clientMessageJson["Username"]
                         clientUser = serverHandler.getUserFromUsername(clientUsername)
                         clientUser.setLastCommandSentTime()
+                        print "lastcom", clientUser.getLastCommandSentTime()
 
                         if clientMessageJson["Action"] == LOGOUT:
                             rlistList, wlistList, addresses, data = logoutUser(replyMessageJson, rlistList, wlistList, addresses, sock, data)
@@ -173,7 +191,7 @@ try:
                     nsent = sock.send(tosend)
                     # remember data still to be sent
                     tosend = tosend[nsent:]
-                # if some data left
+                # if any data leftout to be sent
                 if tosend:
                     data[sock] = tosend
                 else:
@@ -182,8 +200,7 @@ try:
                     except KeyError:
                         pass
                     wlistList.remove(sock)
-        except socket.timeout:
-            logoutUser(user)
-
+        except:
+            pass
 finally:
     serverSocket.close()

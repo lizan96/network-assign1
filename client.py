@@ -18,7 +18,7 @@ def receiveMessageFromServer():
             receivedMessageJson = json.loads(receivedMessage)
             displayMessage = receivedMessageJson["DisplayMessage"]
             print displayMessage
-            if displayMessage == LOGOUT_MESSAGE:
+            if displayMessage == LOGOUT_MESSAGE or displayMessage == LOGOUT_TIMEOUT:
                 os._exit(1)
         except:
             pass
