@@ -1,7 +1,6 @@
 # network-assign1
 
-instant message application
-WILL support
+instant message application supports:
 - User Authentication 
 - Timeout
 - Presence Broadcasts
